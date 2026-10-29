@@ -6,3 +6,5 @@ views/
 stl/
 __pycache__/
 *.FCBak
+# Contains rendered reference textures; do not publish.
+compare_sheet.png

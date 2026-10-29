@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- MIT license for the scripts, CC BY-NC-SA 4.0 for the model files, and a fan-work notice in the README.
+
+### Removed
+
+- `compare_sheet.png` is no longer tracked: it shows the reference's textures.
+
 ## [0.1.0] - 2026-10-30
 
 First release: a modular, printable BD-1 measured from the reference mesh,
