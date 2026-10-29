@@ -18,6 +18,7 @@ from PIL import Image
 from scipy import ndimage
 
 import bd1_model
+from heightmap import heightmap, reference
 
 RES = 0.5          # mm per pixel
 TOL = 1.0          # differences below this are ignored
@@ -40,47 +41,19 @@ def tessellate(parts):
     return np.concatenate(tris)
 
 
-def heightmap(tris, ax, sign, ua, va, box):
-    u0, u1, v0, v1 = box
-    nu, nv = int(np.ceil((u1 - u0) / RES)), int(np.ceil((v1 - v0) / RES))
-    H = np.full((nv, nu), -np.inf)
-    cu = (tris[:, :, ua] - u0) / RES
-    cv = (v1 - tris[:, :, va]) / RES
-    dd = tris[:, :, ax] * sign
-    for t in range(len(tris)):
-        x, y, z = cu[t], cv[t], dd[t]
-        a0, a1 = max(int(x.min()), 0), min(int(np.ceil(x.max())), nu - 1)
-        b0, b1 = max(int(y.min()), 0), min(int(np.ceil(y.max())), nv - 1)
-        if a1 < a0 or b1 < b0:
-            continue
-        den = (y[1] - y[2]) * (x[0] - x[2]) + (x[2] - x[1]) * (y[0] - y[2])
-        if abs(den) < 1e-12:
-            continue
-        uu, vv = np.meshgrid(np.arange(a0, a1 + 1) + 0.5, np.arange(b0, b1 + 1) + 0.5)
-        l0 = ((y[1] - y[2]) * (uu - x[2]) + (x[2] - x[1]) * (vv - y[2])) / den
-        l1 = ((y[2] - y[0]) * (uu - x[2]) + (x[0] - x[2]) * (vv - y[2])) / den
-        l2 = 1 - l0 - l1
-        inside = (l0 >= -1e-6) & (l1 >= -1e-6) & (l2 >= -1e-6)
-        if inside.any():
-            zz = np.where(inside, l0 * z[0] + l1 * z[1] + l2 * z[2], -np.inf)
-            sub = H[b0:b1 + 1, a0:a1 + 1]
-            np.maximum(sub, zz, out=sub)
-    return H
-
-
 def main():
     model = tessellate([p for p in bd1_model.parts() if p[0] != "stand"])
-    data = np.load(os.path.join(HERE, "ref", "bd1_ref.npz"))
-    ref = np.concatenate([data[k] for k in data.files if not k.endswith("#rgb")])
+    ref = reference()
     both = np.concatenate([model.reshape(-1, 3), ref.reshape(-1, 3)])
     lo, hi = both.min(0) - 1, both.max(0) + 1
     out = os.path.join(HERE, "views")
-    only = sys.argv[1:] if len(sys.argv) > 1 and not sys.argv[1].endswith(".py") else list(DIRS)
+    # freecadcmd passes its own arguments too, so pick out the direction names.
+    only = [a for a in sys.argv[1:] if a in DIRS] or list(DIRS)
     for name in only:
         ax, sign, ua, va = DIRS[name]
         box = (lo[ua], hi[ua], lo[va], hi[va])
-        hm = heightmap(model, ax, sign, ua, va, box)
-        hr = heightmap(ref, ax, sign, ua, va, box)
+        hm = heightmap(model, ax, sign, ua, va, box, RES)
+        hr = heightmap(ref, ax, sign, ua, va, box, RES)
         both_in = np.isfinite(hm) & np.isfinite(hr)
         diff = np.where(both_in, hm - hr, 0.0)
         img = np.full(hm.shape + (3,), 255, np.uint8)
