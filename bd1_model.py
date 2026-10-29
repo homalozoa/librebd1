@@ -177,7 +177,7 @@ PAINT_FACE_Y = {"side": HEAD_Y, "edge": 54.8}   # face the pocket is measured fr
 # (outer radius, inner radius, top, cup floor). Lens dome heights from the reference.
 EYES = {
     "right": dict(y=-29.25, z=166.3, r=13.0, lens_r=8.6, front=76.2, dome=5.0, lip=(1.5, 2.0),
-                  ring=RED, lens=BLUE),
+                  ring=GREY, lens=BLUE, band=(10.75, 12.25)),   # red band on the barrel's front face
     "left": dict(y=26.5, z=166.3, r=10.4, lens_r=8.4, front=76.3, dome=4.0, lip=None,
                  nub=(3.2, 2.4, 77.8, 76.0), ring=GREY, lens=LENS_GREY),
 }
@@ -355,10 +355,23 @@ def head_shell():
     return h.cut(cuts)
 
 
+def eye_band_region(e, gap):
+    r0, r1 = e["band"]
+    return cyl_x(e["y"], e["z"], r1 - gap, RING_FRONT - INLAY, RING_FRONT + 1).cut(
+        cyl_x(e["y"], e["z"], r0 + gap, RING_FRONT - INLAY - 1, RING_FRONT + 2))
+
+
+def eye_band(e):
+    """Red band inlaid in the barrel's front face."""
+    return eye_band_region(e, g()).common(cyl_x(e["y"], e["z"], e["r"], EYE_BACK, RING_FRONT))
+
+
 def eye_ring(e):
     """Eye barrel: seated 6 mm in the face panel, standing out to RING_FRONT, with a set-back inner lip."""
     outer = cyl_x(e["y"], e["z"], e["r"], EYE_BACK, RING_FRONT)
     cuts = [cyl_x(e["y"], e["z"], e["lens_r"] + g(), EYE_BACK - 1, RING_FRONT + 1)]
+    if "band" in e:
+        cuts.append(eye_band_region(e, 0))
     if e["lip"]:
         lip_w, lip_d = e["lip"]
         cuts.append(cyl_x(e["y"], e["z"], e["lens_r"] + g() + lip_w, RING_FRONT - lip_d, RING_FRONT + 1))
@@ -463,7 +476,8 @@ NECK_AXIS = ((29.6, 121.9), (1.1, 158.8))
 NECK_T, NECK_W = 9.3, 9.4
 CHEST_PLATE = [(-13.5, 120.5), (13.5, 120.5), (13.5, 105.0), (11.0, 103.0), (11.0, 94.8), (-11.0, 94.8),
                (-11.0, 103.0), (-13.5, 105.0)]   # (y, z), stepped in near the bottom
-CHEST_TAB_HW = 5.0                   # half width of the red tab on the top chamfer
+# Red tab where the front face meets the top chamfer: (half width, z0, z1), traced.
+CHEST_TAB = (6.4, 121.4, 124.9)
 HIP = (5.0, 110.5)
 
 
@@ -516,17 +530,12 @@ def torso():
 
 
 def _chamfer_pocket(gap):
-    """Pocket for the red tab, 1 mm deep, normal to the torso's top front chamfer."""
-    hw = CHEST_TAB_HW
-    a, b = TORSO_XZ[4], TORSO_XZ[5]           # chamfer from the top face down to the front face
-    c = math.hypot(b[0] - a[0], b[1] - a[1])
-    n = ((a[1] - b[1]) / c, (b[0] - a[0]) / c)  # outward: forward and up
-    t0, t1 = 0.15 + gap / c, 0.85 - gap / c
-    p0 = along(a, b, t0)
-    p1 = along(a, b, t1)
-    pts = [(p0[0] - n[0] * INLAY, p0[1] - n[1] * INLAY), (p1[0] - n[0] * INLAY, p1[1] - n[1] * INLAY),
-           (p1[0] + n[0] * 3, p1[1] + n[1] * 3), (p0[0] + n[0] * 3, p0[1] + n[1] * 3)]
-    return prism_xz(pts, -hw + gap, hw - gap)
+    """Pocket for the red tab: the torso's front skin, INLAY deep along x, inside the traced window.
+    The window straddles the top of the front face and the start of the chamfer."""
+    hw, z0, z1 = CHEST_TAB
+    skin_xz = offset_matched(TORSO_XZ, -INLAY) or TORSO_XZ
+    window = box(TORSO["x1"] - 12, TORSO["x1"] + 3, -hw + gap, hw - gap, z0 + gap, z1 - gap)
+    return window.cut(prism_xz(skin_xz, -30, 30))
 
 
 def chest_plate():
@@ -539,7 +548,7 @@ def chest_plate():
 
 
 def chest_tab():
-    return torso_solid().common(_chamfer_pocket(g()))
+    return torso_solid().common(_chamfer_pocket(g())).cut(chest_plate_region(0))
 
 
 def neck():
@@ -825,10 +834,10 @@ def parts():
         out += [(f"paint_{tag}_{name}", solid, colour, "头侧涂装嵌件（两侧图案不同）")
                 for name, colour, solid in paint_inlays(side)]
     for tag, e in EYES.items():
-        out += [
-            (f"eye_ring_{tag}", eye_ring(e), e["ring"], f"{'右' if tag == 'right' else '左'}眼外圈"),
-            (f"lens_{tag}", lens(e), e["lens"], f"{'右眼蓝色' if tag == 'right' else '左眼浅灰'}镜头"),
-        ]
+        out.append((f"eye_ring_{tag}", eye_ring(e), e["ring"], f"{'右' if tag == 'right' else '左'}眼外圈"))
+        if "band" in e:
+            out.append((f"eye_band_{tag}", eye_band(e), RED, "眼筒正面的红色圆环"))
+        out.append((f"lens_{tag}", lens(e), e["lens"], f"{'右眼蓝色' if tag == 'right' else '左眼浅灰'}镜头"))
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
             (f"ear_{tag}", ear_disc(side), WHITE, "耳盘外圈（细槽里涂红线）"),
