@@ -166,7 +166,7 @@ ANTENNA_D = 2.1
 ANTENNA_SOCKET = 3.0      # how far the antenna goes in behind ANTENNA_BASE (stays clear of the ear centre)
 # Green light panel recessed into the sloped back face, measured along the slope from
 # the bottom edge; its face sits LIGHT_RECESS below the surface.
-LIGHT_ALONG = (3.8, 34.6)
+LIGHT_ALONG = (3.8, 35.6)
 LIGHT_Y = 50.0
 LIGHT_RECESS = 3.0
 
@@ -387,7 +387,8 @@ TORSO_YZ = [(-26.7, 94.0), (-26.7, 122.0), (-25.3, 122.4), (-25.2, 128.3), (-17.
             (-25.0, 86.2), (-25.3, 93.6)]
 # Plan outline: sides taper towards the front and step out round the hip.
 TORSO_XY = [(-17.8, -24.0), (-17.8, 24.0), (-11.3, 25.3), (-10.9, 26.7), (17.0, 26.7), (17.4, 25.3),
-            (24.0, 24.7), (33.8, 23.0), (36.3, 21.0), (36.3, -21.0), (33.8, -23.0), (24.0, -24.7),
+            (21.5, 24.8), (27.0, 23.8), (32.1, 22.8), (35.6, 21.8), (36.3, 21.0),
+            (36.3, -21.0), (35.6, -21.8), (32.1, -22.8), (27.0, -23.8), (21.5, -24.8),
             (17.4, -25.3), (17.0, -26.7), (-10.9, -26.7), (-11.3, -25.3)]
 CHEST_DEPTH = 5.2                    # the grey chest plate sits this far behind the front face
 # Recessed back panel: outline at the back face and at its floor (y half-width, z0, z1, x).
@@ -486,7 +487,9 @@ CHANNEL_XZ = [(-15.0, 82.0), (-13.5, 92.0), (-1.0, 113.5), (4.0, 118.5), (7.0, 1
               (11.5, 117.5), (11.5, 111.0), (10.5, 108.0), (-2.5, 85.0), (-7.4, 81.9), (-9.0, 79.5),
               (-11.0, 79.0)]
 CHANNEL_FLOOR = 31.1             # visible floor of the red channel (top of the red insert)
-CHANNEL_UPPER = (102.5, 32.4)    # above this height the red floor rises nearly flush, to this face
+# Patch of the channel floor that rises nearly flush, to CHANNEL_RAISED_FACE (traced).
+CHANNEL_RAISED_XZ = [(-6.2, 104.0), (0.5, 114.6), (10.2, 108.9), (4.0, 97.5), (-1.2, 101.5), (-6.0, 103.0)]
+CHANNEL_RAISED_FACE = 32.4
 HEX_SOCKET = dict(x=1.5, z=105.6, r=3.0)   # hex recess in the upper channel, down to CHANNEL_FLOOR
 ROD = dict(start=(-11.5, 81.5), end=(-4.0, 95.5), r=1.5, top=34.9)      # threaded part
 SHANK = dict(start=(-4.0, 95.5), end=(-0.5, 101.5), r=2.4, top=35.6)   # plain bolt shank under the hex
@@ -561,8 +564,9 @@ def thigh_channel(side):
     """Red insert lining the thigh channel: low floor round the rod, nearly flush above, with a hex recess."""
     inner = offset_poly(CHANNEL_XZ, -g())
     floor = outer_slab(side, inner, CHANNEL_FLOOR - INLAY, CHANNEL_FLOOR)
-    z_up, face = CHANNEL_UPPER
-    upper = outer_slab(side, inner, CHANNEL_FLOOR - 0.01, face).common(box(-60, 60, -60, 60, z_up, 200))
+    face = CHANNEL_RAISED_FACE
+    upper = outer_slab(side, offset_poly(CHANNEL_RAISED_XZ, -g()), CHANNEL_FLOOR - 0.01, face).common(
+        outer_slab(side, inner, CHANNEL_FLOOR - 1, face + 1))
     hs = HEX_SOCKET
     hexagon = Part.makePolygon([V(s(hs["x"] + hs["r"] * math.cos(math.pi / 3 * i)), s(side * CHANNEL_FLOOR),
                                   s(hs["z"] + hs["r"] * math.sin(math.pi / 3 * i))) for i in range(7)])
