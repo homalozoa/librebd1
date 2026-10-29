@@ -194,9 +194,11 @@ ANTENNA_D = 2.1
 ANTENNA_SOCKET = 3.0      # how far the antenna goes in behind ANTENNA_BASE (stays clear of the ear centre)
 # Green light panel recessed into the sloped back face, measured along the slope from
 # the bottom edge; its face sits LIGHT_RECESS below the surface.
-LIGHT_ALONG = (3.8, 35.6)
-LIGHT_Y = 50.0
 LIGHT_RECESS = 3.0
+# Outline at the surface and at the floor (along-slope range, half width): the bottom
+# edge is sharp, the top and side edges slope in over about 4 mm.
+LIGHT_FACE = dict(along=(3.4, 36.7), y=52.3)
+LIGHT_FLOOR = dict(along=(4.5, 32.5), y=47.0)
 
 
 def _slope_frame():
@@ -207,23 +209,32 @@ def _slope_frame():
     return (xb, zb), u, n
 
 
-def light_region(gap, d_in, d_out):
-    """Slab on the back slope between two depths from its surface (negative = inside)."""
+def slope_rect(outline, d, gap=0.0):
+    """Closed wire of a rectangle lying parallel to the back slope, d below its surface."""
     (xb, zb), u, n = _slope_frame()
-    a0, a1 = LIGHT_ALONG[0] + gap, LIGHT_ALONG[1] - gap
+    (a0, a1), hw = outline["along"], outline["y"] - gap
+    a0, a1 = a0 + gap, a1 - gap
     pts = []
-    for a, d in ((a0, d_in), (a1, d_in), (a1, d_out), (a0, d_out)):
-        pts.append((xb + u[0] * a + n[0] * d, zb + u[1] * a + n[1] * d))
-    return prism_xz(pts, -LIGHT_Y + gap, LIGHT_Y - gap)
+    for a, y in ((a0, -hw), (a1, -hw), (a1, hw), (a0, hw)):
+        pts.append(V(s(xb + u[0] * a + n[0] * d), s(y), s(zb + u[1] * a + n[1] * d)))
+    return Part.makePolygon(pts + [pts[0]])
 
 
 def light_pocket():
-    return light_region(0, -(LIGHT_RECESS + INLAY), 3.0)
+    """Recess with sloped top and side edges, lofted from the surface outline to the floor,
+    plus room under the floor for the green insert."""
+    floor_d = -LIGHT_RECESS
+    taper = Part.makeLoft([slope_rect(LIGHT_FACE, 0.0), slope_rect(LIGHT_FLOOR, floor_d)], True, True)
+    above = Part.makeLoft([slope_rect(LIGHT_FACE, 3.0), slope_rect(LIGHT_FACE, -0.01)], True, True)
+    under = Part.makeLoft([slope_rect(LIGHT_FLOOR, floor_d + 0.01), slope_rect(LIGHT_FLOOR, floor_d - INLAY)], True, True)
+    return taper.fuse([above, under])
 
 
 def light_panel():
     """Green insert lining the floor of the back recess."""
-    return light_region(g(), -(LIGHT_RECESS + INLAY), -LIGHT_RECESS)
+    floor_d = -LIGHT_RECESS
+    return Part.makeLoft([slope_rect(LIGHT_FLOOR, floor_d, g()), slope_rect(LIGHT_FLOOR, floor_d - INLAY, g())],
+                         True, True)
 
 
 def top_band_region(gap):
@@ -429,7 +440,8 @@ TORSO_XY = [(-17.8, -24.8), (-17.8, 24.8), (-11.3, 25.3), (17.4, 25.3),
 HIP_RECESS_XZ = [(-10.5, 105.5), (-10.5, 110.5), (-8.5, 115.5), (-4.5, 119.5), (0.5, 121.5), (6.0, 121.5),
                  (10.0, 120.0), (14.0, 116.5), (16.5, 111.0), (16.5, 105.0), (14.0, 99.5), (10.0, 96.0),
                  (5.5, 94.5), (0.5, 94.5), (-4.5, 96.5), (-8.5, 100.5)]
-HIP_RECESS_FLOOR = 21.5
+HIP_RECESS_FLOOR = 21.0
+HIP_RECESS_LIP = (0.75, 26.65)      # raised lip round the recess: width, top
 # The edges between the top face and the sides are bevelled, more towards the front:
 # a plane |y| = a + b x + c z fitted to the reference, applied for x >= x0.
 TORSO_CORNER_BEVEL = dict(a=154.741, b=-0.3602, c=-0.9695, x0=19.0)
@@ -478,7 +490,13 @@ def back_panel_recess():
 
 def torso():
     t = torso_solid()
-    recesses = [outer_slab(side, HIP_RECESS_XZ, HIP_RECESS_FLOOR, TORSO["y"] + 3) for side in (1, -1)]
+    lip_w, lip_top = HIP_RECESS_LIP
+    # The lip runs under the thigh's rim there; trim it so the parts don't collide.
+    under_thigh = offset_poly(THIGH_XZ, g())
+    lip_ring = [outer_slab(side, offset_poly(HIP_RECESS_XZ, lip_w), TORSO["y"] - 0.01, lip_top)
+                .cut(outer_slab(side, under_thigh, TORSO["y"], lip_top + 1)) for side in (1, -1)]
+    t = t.fuse(lip_ring)
+    recesses = [outer_slab(side, HIP_RECESS_XZ, HIP_RECESS_FLOOR, lip_top + 1) for side in (1, -1)]
     t = t.cut([chest_plate_region(0), back_panel_recess(), neck_body(g()),
                pin_hole_y(HIP[0], HIP[1], -TORSO["y"], TORSO["y"])] + recesses)
     # Red tab: a pocket 1 mm deep into the top chamfer.
