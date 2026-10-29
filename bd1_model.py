@@ -1,0 +1,652 @@
+"""BD-1 (Star Wars Jedi: Fallen Order) modular fan model for FreeCAD 1.x.
+
+Proportions are measured from the reference mesh in
+bd-1-droid-star-wars-jedi-fallen-order/ (see glb_ref.py), at the size where the
+top of the head shell is 190 mm. Every colour region is its own part so each
+can be printed in its own filament or painted separately, then joined with
+3 mm pins (steel/aluminium rod or M3 screws) and glue.
+
+Axes: X forward (face), Y to BD-1's left, Z up, feet on Z=0. Units mm.
+BD1_HEIGHT (head-top height in mm, default 190) scales the body; pin holes and
+glue gaps stay at a fixed size so the same hardware fits at any size.
+"""
+import math
+import os
+
+import FreeCAD as App
+import Part
+
+V = App.Vector
+HEIGHT = float(os.environ.get("BD1_HEIGHT", "190"))
+K = HEIGHT / 190.0
+PIN_D = 3.0          # pin diameter (hardware)
+PIN_HOLE = 3.3       # hole for a pin that should turn freely
+ROD_HOLE = 2.3       # hole for a 2 mm brass antenna rod
+GLUE_GAP = 0.2       # clearance per side for parts that slot into pockets
+INLAY = 1.0          # depth of colour inlay pockets
+
+# Paint colours (RGB 0..1), taken from the reference textures.
+WHITE = (0.88, 0.87, 0.78)
+GREY = (0.55, 0.56, 0.58)
+DARK = (0.20, 0.21, 0.23)
+RED = (0.72, 0.10, 0.10)
+BLUE = (0.15, 0.40, 0.65)
+LENS_GREY = (0.78, 0.79, 0.80)
+GREEN = (0.30, 0.75, 0.30)
+
+
+def s(x):
+    return x * K
+
+
+def g():
+    """Glue gap in model units, so it stays GLUE_GAP mm after scaling."""
+    return GLUE_GAP / K
+
+
+# ---------------------------------------------------------------- primitives
+def prism_xz(pts, y0, y1):
+    """Polygon in the XZ plane, extruded from y0 to y1."""
+    w = Part.makePolygon([V(s(x), s(y0), s(z)) for x, z in pts] + [V(s(pts[0][0]), s(y0), s(pts[0][1]))])
+    return Part.Face(w).extrude(V(0, s(y1 - y0), 0))
+
+
+def prism_yz(pts, x0, x1):
+    """Polygon in the YZ plane, extruded from x0 to x1."""
+    w = Part.makePolygon([V(s(x0), s(y), s(z)) for y, z in pts] + [V(s(x0), s(pts[0][0]), s(pts[0][1]))])
+    return Part.Face(w).extrude(V(s(x1 - x0), 0, 0))
+
+
+def box(x0, x1, y0, y1, z0, z1):
+    return Part.makeBox(s(x1 - x0), s(y1 - y0), s(z1 - z0), V(s(x0), s(y0), s(z0)))
+
+
+def cyl_y(x, z, r, y0, y1, fixed_r=False):
+    lo, hi = min(y0, y1), max(y0, y1)
+    return Part.makeCylinder(r if fixed_r else s(r), s(hi - lo), V(s(x), s(lo), s(z)), V(0, 1, 0))
+
+
+def cyl_x(y, z, r, x0, x1):
+    return Part.makeCylinder(s(r), s(x1 - x0), V(s(x0), s(y), s(z)), V(1, 0, 0))
+
+
+def pin_hole_y(x, z, y0, y1):
+    lo, hi = min(y0, y1) - 1, max(y0, y1) + 1
+    return cyl_y(x, z, PIN_HOLE / 2, lo, hi, fixed_r=True)
+
+
+def capsule_xz(c1, r1, c2, r2, y0, y1):
+    """Convex hull of two circles in the XZ plane, extruded along Y (a leg link)."""
+    (x1, z1), (x2, z2) = c1, c2
+    d = math.hypot(x2 - x1, z2 - z1)
+    base = math.atan2(z2 - z1, x2 - x1)
+    a = math.acos((r1 - r2) / d)
+    pts = []
+    for sgn in (1, -1):
+        ang = base + sgn * a
+        pts.append(((x1 + r1 * math.cos(ang), z1 + r1 * math.sin(ang)),
+                    (x2 + r2 * math.cos(ang), z2 + r2 * math.sin(ang))))
+    poly = [pts[0][0], pts[0][1], pts[1][1], pts[1][0]]
+    lo, hi = min(y0, y1), max(y0, y1)
+    shape = prism_xz(poly, lo, hi).fuse([cyl_y(x1, z1, r1, lo, hi), cyl_y(x2, z2, r2, lo, hi)])
+    return shape.removeSplitter()
+
+
+def try_fillet(shape, r, edges=None):
+    try:
+        return shape.makeFillet(s(r), edges or shape.Edges)
+    except Exception:
+        return shape
+
+
+def along(c1, c2, t):
+    return (c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t)
+
+
+# ---------------------------------------------------------------- head
+HEAD_Y = 55.5
+HEAD_Z0, HEAD_Z1 = 151.9, 189.5   # top face height where the front and side outlines agree
+HEAD_SIDE = [(-60.7, 152.4), (52.0, HEAD_Z0), (52.0, HEAD_Z1), (-47.4, HEAD_Z1)]   # back slope from [0] to [3]
+SNOUT_Y = 53.7
+# Head outlines traced from the reference mesh (ref_profiles.py), chin tabs left out.
+HEAD_XZ = [(-60.7, 152.4), (-48.0, 188.2), (-46.8, 189.9), (51.3, 190.0), (52.0, 189.5), (52.2, 182.8),
+           (75.3, 182.8), (76.7, 182.3), (69.9, 152.1), (34.3, 152.0)]
+HEAD_YZ = [(-55.5, 156.7), (-55.5, 185.2), (-54.2, 188.2), (-51.5, 189.5), (51.5, 189.5), (54.2, 188.2),
+           (55.5, 185.2), (55.5, 156.7), (52.9, 152.2), (48.3, 151.9), (-48.3, 151.9), (-52.9, 152.2)]
+HEAD_XY = [(-60.4, -52.2), (-60.7, 52.2), (-59.1, 55.5), (52.0, 55.5), (52.2, 53.8), (69.7, 53.8),
+           (75.3, 47.3), (76.8, 40.2), (76.8, -40.2), (75.3, -47.3), (69.7, -53.8), (52.2, -53.8),
+           (52.0, -55.5), (-59.1, -55.5)]
+CHIN_TAB_YZ = [(28.6, 152.4), (28.6, 151.9), (37.0, 149.9), (43.1, 150.0), (48.3, 151.9), (48.3, 152.4)]
+CHIN_TAB_X = (50.6, 59.9)
+# The snout is a hood: a top plate and two side walls round a face panel set back
+# at FACE_X, with a deeper recess down the middle (measured from the reference).
+FACE_X = 60.0
+HOOD_INNER_Y = 47.0
+HOOD_TOP_Z = 180.3
+NOSE_X = 52.0
+NOSE_YZ = [(-14.0, 181.0), (14.0, 181.0), (14.0, 164.0), (16.0, 160.0), (18.0, 158.0), (20.0, 156.5),
+           (24.0, 154.5), (26.0, 153.5), (32.0, 151.5), (34.0, 140.0), (-34.0, 140.0), (-32.0, 151.5),
+           (-26.0, 153.5), (-24.0, 154.5), (-20.0, 156.5), (-18.0, 158.0), (-16.0, 160.0), (-14.0, 164.0)]
+PANEL_LINES_X = (-4.5, 34.7, 42.2)
+TOP_BAND_X = (-4.0, 34.2)
+SIDE_PANEL = [(-2.0, 180.0), (32.5, 180.0), (32.5, 159.5), (16.5, 159.5)]
+RED_STRIPE = [(-44.0, 182.8), (51.0, 182.8), (51.0, 187.8), (-45.8, 187.8)]
+SNOUT_RED = [(53.5, 156.5), (65.5, 156.5), (65.5, 180.0), (53.5, 180.0)]
+EYES = {  # BD-1's right eye is the larger one with a blue lens.
+    "right": dict(y=-29.25, z=166.3, r=13.0, lens_r=8.6, front=76.1, ring=RED, lens=BLUE),
+    "left": dict(y=26.5, z=166.3, r=10.6, lens_r=8.4, front=76.6, ring=GREY, lens=LENS_GREY,
+                 nub=(2.4, 77.8)),   # small centre knob: radius, front
+}
+EYE_BACK = 54.0           # floor of the eye sockets, 6 mm behind the face panel
+RING_FRONT = 72.0
+RING_LIP = (1.5, 2.0)     # inner lip of the eye barrel: width, how far it is set back
+EAR = dict(x=-30.0, z=170.6, r=16.5, y0=HEAD_Y, y1=62.8)
+ANTENNA_BASE = (-37.0, 183.0)
+ANTENNA_TIP = (-77.8, 242.6)
+ANTENNA_D = 2.1
+# Green light bar on the sloped back face, measured along the slope from the bottom edge.
+LIGHT_ALONG = (5.0, 25.0)
+LIGHT_Y = 50.0
+
+
+def _slope_frame():
+    (xb, zb), (xt, zt) = HEAD_SIDE[0], HEAD_SIDE[3]
+    L = math.hypot(xt - xb, zt - zb)
+    u = ((xt - xb) / L, (zt - zb) / L)          # up the slope
+    n = (-u[1], u[0])                            # outward (back and up)
+    return (xb, zb), u, n
+
+
+def light_region(gap):
+    (xb, zb), u, n = _slope_frame()
+    a0, a1 = LIGHT_ALONG[0] + gap, LIGHT_ALONG[1] - gap
+    pts = []
+    for a, d in ((a0, -INLAY), (a1, -INLAY), (a1, 3.0), (a0, 3.0)):
+        pts.append((xb + u[0] * a + n[0] * d, zb + u[1] * a + n[1] * d))
+    return prism_xz(pts, -LIGHT_Y + gap, LIGHT_Y - gap)
+
+
+def top_band_region(gap):
+    x0, x1 = TOP_BAND_X
+    return box(x0 + gap, x1 - gap, -HEAD_Y + 1.5 + gap, HEAD_Y - 1.5 - gap, HEAD_Z1 - INLAY, HEAD_Z1 + 3)
+
+
+def _inset(poly, gap):
+    """Shrink a convex polygon by moving each vertex towards the centroid (good enough for gaps)."""
+    if gap == 0:
+        return poly
+    cx = sum(p[0] for p in poly) / len(poly)
+    cz = sum(p[1] for p in poly) / len(poly)
+    out = []
+    for x, z in poly:
+        d = math.hypot(x - cx, z - cz)
+        out.append((x - (x - cx) / d * gap * 1.4, z - (z - cz) / d * gap * 1.4))
+    return out
+
+
+def side_region(poly, side, gap, y_face=HEAD_Y):
+    p = _inset(poly, gap)
+    y_in = side * (y_face - INLAY)
+    y_out = side * (y_face + 3)
+    return prism_xz(p, min(y_in, y_out), max(y_in, y_out))
+
+
+def eye_hole(e, gap):
+    return cyl_x(e["y"], e["z"], e["r"] + gap, EYE_BACK, 90)
+
+
+def neck_body(gap):
+    """Square neck rod between the torso top and the head underside."""
+    (x0, z0), (x1, z1) = NECK_AXIS
+    L = math.hypot(x1 - x0, z1 - z0)
+    ux, uz = (x1 - x0) / L, (z1 - z0) / L
+    nx, nz = -uz, ux
+    h = NECK_T / 2 + gap
+    pts = [(x0 + nx * h, z0 + nz * h), (x1 + nx * h, z1 + nz * h),
+           (x1 - nx * h, z1 - nz * h), (x0 - nx * h, z0 - nz * h)]
+    return prism_xz(pts, -NECK_W / 2 - gap, NECK_W / 2 + gap)
+
+
+def prism_xy(pts, z0, z1):
+    """Polygon in the XY plane, extruded from z0 to z1."""
+    w = Part.makePolygon([V(s(x), s(y), s(z0)) for x, y in pts] + [V(s(pts[0][0]), s(pts[0][1]), s(z0))])
+    return Part.Face(w).extrude(V(0, 0, s(z1 - z0)))
+
+
+def head_solid():
+    """Intersection of the traced side, front and top outlines, plus the two chin tabs."""
+    h = prism_xz(HEAD_XZ, -60, 60).common(prism_yz(HEAD_YZ, -70, 90)).common(prism_xy(HEAD_XY, 140, 200))
+    tabs = [prism_yz([(side * y, z) for y, z in CHIN_TAB_YZ], *CHIN_TAB_X) for side in (1, -1)]
+    h = h.fuse(tabs)
+    hood = box(FACE_X, 90, -HOOD_INNER_Y, HOOD_INNER_Y, 140, HOOD_TOP_Z)
+    nose = prism_yz(NOSE_YZ, NOSE_X, FACE_X + 1)
+    return h.cut([hood, nose]).removeSplitter()
+
+
+def head_shell():
+    h = head_solid()
+    # Panel lines: thin grooves running round the main box.
+    for x in PANEL_LINES_X:
+        ring = box(x - 0.4, x + 0.4, -HEAD_Y - 1, HEAD_Y + 1, HEAD_Z0 - 1, HEAD_Z1 + 1)
+        ring = ring.cut(box(x - 1, x + 1, -HEAD_Y + 0.6, HEAD_Y - 0.6, HEAD_Z0 + 0.6, HEAD_Z1 - 0.6))
+        h = h.cut(ring)
+    cuts = [top_band_region(0), light_region(0)]
+    for side in (1, -1):
+        cuts += [side_region(SIDE_PANEL, side, 0), side_region(RED_STRIPE, side, 0),
+                 side_region(SNOUT_RED, side, 0, SNOUT_Y)]
+        # 3 mm peg hole for the ear disc.
+        cuts.append(pin_hole_y(EAR["x"], EAR["z"], side * (HEAD_Y - 8), side * HEAD_Y))
+    for e in EYES.values():
+        cuts.append(eye_hole(e, g()))
+    cuts.append(neck_body(g()))
+    return h.cut(cuts)
+
+
+def eye_ring(e):
+    """Eye barrel: seated 6 mm in the face panel, standing out to RING_FRONT, with a set-back inner lip."""
+    outer = cyl_x(e["y"], e["z"], e["r"], EYE_BACK, RING_FRONT)
+    inner = cyl_x(e["y"], e["z"], e["lens_r"] + g(), EYE_BACK - 1, RING_FRONT + 1)
+    lip_w, lip_d = RING_LIP
+    lip = cyl_x(e["y"], e["z"], e["lens_r"] + g() + lip_w, RING_FRONT - lip_d, RING_FRONT + 1)
+    return outer.cut([inner, lip])
+
+
+def lens(e):
+    r = e["lens_r"]
+    body = cyl_x(e["y"], e["z"], r, EYE_BACK, e["front"] - 2.5)
+    dome_h = 2.5
+    sph_r = (r * r + dome_h * dome_h) / (2 * dome_h)
+    sph = Part.makeSphere(s(sph_r), V(s(e["front"] - sph_r), s(e["y"]), s(e["z"])))
+    cap = sph.common(cyl_x(e["y"], e["z"], r, e["front"] - 2.5, e["front"] + 1))
+    parts = [cap]
+    if "nub" in e:
+        nub_r, nub_front = e["nub"]
+        parts.append(cyl_x(e["y"], e["z"], nub_r, e["front"] - 1.0, nub_front))
+    return body.fuse(parts).removeSplitter()
+
+
+def ear_disc(side):
+    y0, y1 = side * EAR["y0"], side * EAR["y1"]
+    d = cyl_y(EAR["x"], EAR["z"], EAR["r"], y0, y1)
+    d = try_fillet(d, 2.5, [e for e in d.Edges if abs(abs(e.BoundBox.Center.y) - s(EAR["y1"])) < 1e-6])
+    # Grey centre inlay pocket and a paint groove for the red ring.
+    d = d.cut(ear_centre_region(side, 0))
+    groove = cyl_y(EAR["x"], EAR["z"], 13.6, side * (EAR["y1"] - 0.6), side * (EAR["y1"] + 1))
+    d = d.cut(groove.cut(cyl_y(EAR["x"], EAR["z"], 12.8, side * (EAR["y1"] - 1), side * (EAR["y1"] + 2))))
+    peg = Part.makeCylinder(PIN_D / 2, s(6), V(s(EAR["x"]), s(y0), s(EAR["z"])), V(0, -side, 0))
+    d = d.fuse(peg)
+    # Socket for the antenna rod, drilled along the antenna direction.
+    (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
+    L = math.hypot(tx - bx, tz - bz)
+    dirv = V((tx - bx) / L, 0, (tz - bz) / L)
+    yc = side * (EAR["y0"] + EAR["y1"]) / 2
+    start = V(s(bx), s(yc), s(bz)) - dirv * s(8)
+    return d.cut(Part.makeCylinder(ROD_HOLE / 2, s(12), start, dirv)).removeSplitter()
+
+
+def ear_centre_region(side, gap):
+    return cyl_y(EAR["x"], EAR["z"], 9.5 - gap, side * (EAR["y1"] - INLAY), side * (EAR["y1"] + 2))
+
+
+def ear_centre(side):
+    c = cyl_y(EAR["x"], EAR["z"], 9.5 - g(), side * (EAR["y1"] - INLAY), side * EAR["y1"])
+    # Centre hub ring, cut in so the face stays flush with the disc.
+    return c.cut(cyl_y(EAR["x"], EAR["z"], 4.6, side * (EAR["y1"] - 0.5), side * (EAR["y1"] + 1))
+                 .cut(cyl_y(EAR["x"], EAR["z"], 3.8, side * (EAR["y1"] - 1), side * (EAR["y1"] + 2))))
+
+
+def antenna_exit():
+    """Where the antenna line leaves the ear disc rim, and how far that is from ANTENNA_BASE."""
+    (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
+    L = math.hypot(tx - bx, tz - bz)
+    dx, dz = (tx - bx) / L, (tz - bz) / L
+    ox, oz = bx - EAR["x"], bz - EAR["z"]
+    b = ox * dx + oz * dz
+    t = -b + math.sqrt(b * b - (ox * ox + oz * oz - EAR["r"] ** 2))
+    return (bx + dx * t, bz + dz * t), t
+
+
+def antenna(side):
+    """Printable antenna; a 2 mm brass rod of the same length is sturdier."""
+    (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
+    L = math.hypot(tx - bx, tz - bz)
+    dirv = V((tx - bx) / L, 0, (tz - bz) / L)
+    yc = side * (EAR["y0"] + EAR["y1"]) / 2
+    start = V(s(bx), s(yc), s(bz)) - dirv * s(7)
+    rod = Part.makeCylinder(min(s(ANTENNA_D / 2), ROD_HOLE / 2 - 0.1), s(L + 7), start, dirv)
+    (ex, ez), _ = antenna_exit()
+    collar = Part.makeCylinder(s(2.4), s(5), V(s(ex), s(yc), s(ez)), dirv)
+    tip = Part.makeCone(s(ANTENNA_D / 2), 0.2, s(3), V(s(tx), s(yc), s(tz)), dirv)
+    return rod.fuse([collar, tip]).removeSplitter()
+
+
+# ---------------------------------------------------------------- body
+TORSO = dict(x0=-17.8, x1=36.2, y=26.7, z0=86.0, z1=131.9)
+TORSO_XZ = [(-17.7, 86.3), (-17.8, 128.3), (-8.2, 131.9), (28.2, 131.9), (29.6, 131.4), (36.2, 123.5),
+            (36.0, 91.0), (23.9, 87.5), (16.0, 86.1), (-16.7, 86.0)]
+TORSO_YZ = [(-26.7, 94.0), (-26.7, 122.0), (-25.3, 122.4), (-25.2, 128.3), (-17.1, 131.9), (17.1, 131.9),
+            (25.2, 128.3), (25.3, 122.4), (26.7, 122.0), (26.7, 94.0), (25.3, 93.6), (25.0, 86.2),
+            (-25.0, 86.2), (-25.3, 93.6)]
+NECK_AXIS = ((29.6, 121.9), (1.1, 158.8))
+NECK_T, NECK_W = 9.3, 9.4
+CHEST_PLATE = [(-13.0, 120.0), (13.0, 120.0), (11.0, 96.0), (-11.0, 96.0)]   # (y, z)
+CHEST_TAB_HW = 5.0                   # half width of the red tab on the top chamfer
+HIP = (5.0, 110.5)
+
+
+def torso_solid():
+    """Intersection of the traced side and front outlines."""
+    return prism_xz(TORSO_XZ, -30, 30).common(prism_yz(TORSO_YZ, -25, 45))
+
+
+def chest_plate_region(gap):
+    pts = _inset(CHEST_PLATE, gap)
+    return prism_yz(pts, TORSO["x1"] - INLAY, TORSO["x1"] + 3)
+
+
+def torso():
+    t = torso_solid()
+    t = t.cut([chest_plate_region(0), neck_body(g()), pin_hole_y(HIP[0], HIP[1], -TORSO["y"], TORSO["y"])])
+    # Red tab: a pocket 1 mm deep into the top chamfer.
+    return t.cut(_chamfer_pocket(0))
+
+
+def _chamfer_pocket(gap):
+    """Pocket for the red tab, 1 mm deep, normal to the torso's top front chamfer."""
+    hw = CHEST_TAB_HW
+    a, b = TORSO_XZ[4], TORSO_XZ[5]           # chamfer from the top face down to the front face
+    c = math.hypot(b[0] - a[0], b[1] - a[1])
+    n = ((a[1] - b[1]) / c, (b[0] - a[0]) / c)  # outward: forward and up
+    t0, t1 = 0.15 + gap / c, 0.85 - gap / c
+    p0 = along(a, b, t0)
+    p1 = along(a, b, t1)
+    pts = [(p0[0] - n[0] * INLAY, p0[1] - n[1] * INLAY), (p1[0] - n[0] * INLAY, p1[1] - n[1] * INLAY),
+           (p1[0] + n[0] * 3, p1[1] + n[1] * 3), (p0[0] + n[0] * 3, p0[1] + n[1] * 3)]
+    return prism_xz(pts, -hw + gap, hw - gap)
+
+
+def chest_plate():
+    p = torso_solid().common(chest_plate_region(g()))
+    for y in (-6.0, 6.0):
+        p = p.cut(cyl_x(y, 113.0, 1.2, TORSO["x1"] - 0.5, TORSO["x1"] + 1))
+    return p
+
+
+def chest_tab():
+    return torso_solid().common(_chamfer_pocket(g()))
+
+
+def neck():
+    n = neck_body(0)
+    # Trim the ends so they stop inside the sockets (8 mm deep each side).
+    return n.common(box(-50, 80, -10, 10, TORSO["z1"] - 8, HEAD_Z0 + 8))
+
+
+# ---------------------------------------------------------------- legs
+KNEE = (-18.3, 72.6)
+ANKLE = (38.5, 11.0)
+THIGH_Y = (26.8, 32.6)           # inner and outer face of the thigh plate
+SHIN_Y = (19.2, 25.9)
+SHIN_PLATE_Y = (28.6, 31.5)      # red shin plate face, and its two lugs
+# Side outlines (x, z) traced from the reference mesh with ref_profiles.py.
+THIGH_XZ = [(-27.9, 73.3), (-26.6, 77.1), (-23.9, 80.2), (-20.7, 81.5), (-18.1, 85.7), (-22.4, 94.8),
+            (-9.4, 117.3), (-4.3, 121.5), (1.9, 123.3), (8.2, 122.7), (13.6, 119.5), (17.3, 114.4),
+            (18.3, 111.4), (18.5, 104.9), (17.7, 101.6), (4.7, 79.1), (-5.4, 78.3), (-7.7, 74.0),
+            (-7.3, 70.5), (-8.6, 66.7), (-11.2, 63.6), (-14.9, 61.9), (-18.9, 61.6), (-22.8, 62.9),
+            (-25.8, 65.6), (-27.6, 69.2)]
+SHIN_XZ = [(-28.1, 73.2), (-27.0, 76.9), (-24.6, 79.8), (-21.3, 81.7), (-17.5, 82.1), (-13.9, 81.0),
+           (-10.9, 78.6), (40.9, 16.9), (42.5, 14.2), (43.1, 11.4), (42.6, 8.7), (41.2, 6.7), (38.9, 5.6),
+           (36.2, 5.6), (31.1, 8.7), (0.4, 45.3), (-6.7, 47.7), (-19.2, 62.7), (-22.9, 63.7),
+           (-25.8, 66.1), (-27.7, 69.5)]
+# Thigh greebles, traced from the reference's outer-face height map (x, z).
+CHANNEL_XZ = [(-15.0, 82.0), (-13.5, 92.0), (-1.0, 113.5), (4.0, 118.5), (7.0, 120.0), (10.5, 118.5),
+              (11.5, 117.5), (11.5, 111.0), (10.5, 108.0), (-2.5, 85.0), (-7.4, 81.9), (-9.0, 79.5),
+              (-11.0, 79.0)]
+CHANNEL_FLOOR = 31.1             # visible floor of the red channel (top of the red insert)
+CHANNEL_UPPER = (102.5, 32.4)    # above this height the red floor rises nearly flush, to this face
+HEX_SOCKET = dict(x=1.5, z=105.6, r=3.0)   # hex recess in the upper channel, down to CHANNEL_FLOOR
+ROD = dict(start=(-11.5, 81.5), end=(-4.0, 95.5), r=1.5, top=34.9)      # threaded part
+SHANK = dict(start=(-4.0, 95.5), end=(-0.5, 101.5), r=2.4, top=35.6)   # plain bolt shank under the hex
+SLOT_XZ = [(1.5, 87.0), (10.5, 104.0), (14.5, 102.0), (5.5, 85.0)]
+SLOT_DEPTH = 1.5
+PISTON = dict(start=(3.9, 87.3), end=(11.8, 102.0), r=1.7, top=33.2, cap_r=2.15, cap_top=33.8)
+KNEE_CAP = dict(r=9.6, rim_top=34.6, boss_r=5.5, boss_top=35.2, star_floor=33.6, sink=1.5)
+# Red shin plate and its two lugs, traced the same way.
+SHIN_PLATE_XZ = [(-10.5, 59.5), (-9.3, 59.0), (-8.2, 59.0), (-3.0, 64.0), (-1.5, 64.5), (31.0, 26.5),
+                 (28.2, 28.0), (22.0, 22.0), (2.0, 45.0), (-1.0, 48.5), (-4.0, 52.0)]
+SHIN_LUGS_XZ = [[(-13.0, 63.0), (-6.5, 69.5), (-2.0, 65.0), (-2.0, 64.0), (-8.5, 58.5)],
+                [(22.5, 21.5), (22.5, 23.0), (28.5, 28.5), (33.0, 24.0), (33.0, 23.0), (26.5, 17.5)]]
+FOOT_Y = (17.9, 27.2)
+FORK_Y = ((16.6, 19.0), (26.1, 28.2))
+FORK_R = 3.8
+FOOT_SIDE = [(6.0, 0.0), (58.0, 0.0), (58.0, 3.5), (52.0, 5.3), (30.0, 5.3), (12.0, 1.7), (6.0, 0.6)]
+
+
+def ys(side, pair):
+    a, b = side * pair[0], side * pair[1]
+    return min(a, b), max(a, b)
+
+
+def offset_poly(pts, d):
+    """Grow (d > 0) or shrink (d < 0) a 2D outline with mitred corners; returns its largest piece."""
+    from shapely.geometry import Polygon
+    p = Polygon(pts).buffer(d, join_style=2)
+    if p.geom_type == "MultiPolygon":
+        p = max(p.geoms, key=lambda q: q.area)
+    return [(x, z) for x, z in list(p.exterior.coords)[:-1]]
+
+
+def union_poly(polys):
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    u = unary_union([Polygon(p) for p in polys]).buffer(0.01, join_style=2)
+    return [(x, z) for x, z in list(u.exterior.coords)[:-1]]
+
+
+def outer_slab(side, pts, y_from, y_to):
+    """Prism of an (x, z) outline between two distances from the centre plane, on one side."""
+    return prism_xz(pts, *ys(side, (y_from, y_to)))
+
+
+def thigh_solid(side):
+    t = outer_slab(side, THIGH_XZ, *THIGH_Y)
+    edges = [e for e in t.Edges if abs(e.BoundBox.YLength) < 1e-6 and abs(abs(e.BoundBox.Center.y) - s(THIGH_Y[1])) < 1e-6]
+    try:
+        return t.makeChamfer(s(0.8), edges)
+    except Exception:
+        return t
+
+
+def thigh(side):
+    t = thigh_solid(side)
+    insert_floor = CHANNEL_FLOOR - INLAY
+    t = t.cut([outer_slab(side, CHANNEL_XZ, insert_floor, THIGH_Y[1] + 3),
+               outer_slab(side, SLOT_XZ, THIGH_Y[1] - SLOT_DEPTH, THIGH_Y[1] + 3),
+               cyl_y(KNEE[0], KNEE[1], KNEE_CAP["r"], side * (THIGH_Y[1] - KNEE_CAP["sink"]), side * (THIGH_Y[1] + 3))])
+    y0, y1 = ys(side, THIGH_Y)
+    for x, z in (HIP, KNEE):
+        t = t.cut(pin_hole_y(x, z, y0, y1))
+    return t
+
+
+def thigh_channel(side):
+    """Red insert lining the thigh channel: low floor round the rod, nearly flush above, with a hex recess."""
+    inner = offset_poly(CHANNEL_XZ, -g())
+    floor = outer_slab(side, inner, CHANNEL_FLOOR - INLAY, CHANNEL_FLOOR)
+    z_up, face = CHANNEL_UPPER
+    upper = outer_slab(side, inner, CHANNEL_FLOOR - 0.01, face).common(box(-60, 60, -60, 60, z_up, 200))
+    hs = HEX_SOCKET
+    hexagon = Part.makePolygon([V(s(hs["x"] + hs["r"] * math.cos(math.pi / 3 * i)), s(side * CHANNEL_FLOOR),
+                                  s(hs["z"] + hs["r"] * math.sin(math.pi / 3 * i))) for i in range(7)])
+    socket = Part.Face(hexagon).extrude(V(0, s(side * (face - CHANNEL_FLOOR + 1)), 0))
+    # Clearance for the bolt shank where it runs up into the raised part.
+    from shapely.geometry import LineString
+    shank = LineString([SHANK["start"], SHANK["end"]]).buffer(SHANK["r"] + g())
+    notch = outer_slab(side, list(shank.exterior.coords)[:-1], CHANNEL_FLOOR, face + 1)
+    return floor.fuse(upper).removeSplitter().cut([socket, notch])
+
+
+def _threaded(start, end, r, y_axis, side, ridges, ridge=0.35):
+    """Cylinder along an (x, z) segment at height y_axis, with a few thread ridges."""
+    (x0, z0), (x1, z1) = start, end
+    L = math.hypot(x1 - x0, z1 - z0)
+    d = V((x1 - x0) / L, 0, (z1 - z0) / L)
+    origin = V(s(x0), s(side * y_axis), s(z0))
+    c = Part.makeCylinder(s(r), s(L), origin, d)
+    for i in range(1, ridges + 1):
+        c = c.fuse(Part.makeCylinder(s(r + ridge), s(0.8), origin + d * s(L * i / (ridges + 1.5)), d))
+    return c, origin, d, L
+
+
+def thigh_rod(side):
+    """Grey threaded rod lying on the red channel floor, from the hex down to the knee."""
+    y_rod = ROD["top"] - ROD["r"]
+    rod, origin, d, L = _threaded(ROD["start"], ROD["end"], ROD["r"], y_rod, side, 6, ridge=0.3)
+    rod = rod.fuse(Part.makeSphere(s(ROD["r"]), origin))
+    y_sh = SHANK["top"] - SHANK["r"]
+    shank, o2, d2, L2 = _threaded(SHANK["start"], SHANK["end"], SHANK["r"], y_sh, side, 0)
+    shank = shank.fuse(Part.makeSphere(s(SHANK["r"]), o2 + d2 * s(L2)))
+    # Webs under both so the part sits flat on the floor.
+    webs = [capsule_xz(p["start"], p["r"] * 0.6, p["end"], p["r"] * 0.6, *ys(side, (CHANNEL_FLOOR, p["top"] - p["r"])))
+            for p in (ROD, SHANK)]
+    part = rod.fuse([shank] + webs).removeSplitter()
+    return part.common(outer_slab(side, offset_poly(CHANNEL_XZ, -g()), CHANNEL_FLOOR, SHANK["top"] + 1))
+
+
+def thigh_piston(side):
+    """Grey threaded cylinder in the slot beside the channel, with a cap at its upper end."""
+    floor = THIGH_Y[1] - SLOT_DEPTH
+    y_axis = PISTON["top"] - PISTON["r"]
+    p, origin, d, L = _threaded(PISTON["start"], PISTON["end"], PISTON["r"], y_axis, side, 4, ridge=0.25)
+    cap = Part.makeCylinder(s(PISTON["cap_r"]), s(2.0), origin + d * s(L - 2.0), d)
+    p = p.fuse(cap).removeSplitter()
+    return p.common(outer_slab(side, offset_poly(SLOT_XZ, -g()), floor, PISTON["cap_top"]))
+
+
+def knee_cap(side):
+    """Grey knee bolt: rim, raised boss and a six-point star recess, sunk into the thigh."""
+    kc = KNEE_CAP
+    y_in = THIGH_Y[1] - kc["sink"]
+    cap = cyl_y(KNEE[0], KNEE[1], kc["r"] - g(), side * y_in, side * kc["rim_top"])
+    cap = cap.fuse(cyl_y(KNEE[0], KNEE[1], kc["boss_r"], side * (kc["rim_top"] - 0.01), side * kc["boss_top"]))
+    star = Part.makePolygon([V(s(KNEE[0] + (3.2 if i % 2 == 0 else 1.7) * math.cos(i * math.pi / 6)),
+                               s(side * kc["star_floor"]),
+                               s(KNEE[1] + (3.2 if i % 2 == 0 else 1.7) * math.sin(i * math.pi / 6)))
+                             for i in range(13)])
+    cap = cap.cut(Part.Face(star).extrude(V(0, s(side * (kc["boss_top"] - kc["star_floor"] + 1)), 0)))
+    peg = Part.makeCylinder(PIN_D / 2, s(4), V(s(KNEE[0]), s(side * y_in), s(KNEE[1])), V(0, -side, 0))
+    return cap.fuse(peg).removeSplitter()
+
+
+def shin_plate_outline():
+    return union_poly([SHIN_PLATE_XZ] + SHIN_LUGS_XZ)
+
+
+def shin(side):
+    y0, y1 = ys(side, SHIN_Y)
+    sh = prism_xz(SHIN_XZ, y0, y1)
+    # Spacer boss at the knee so the shin bears on the thigh plate.
+    sh = sh.fuse(cyl_y(KNEE[0], KNEE[1], 7.0, side * SHIN_Y[1], side * (THIGH_Y[0] - 0.2))).removeSplitter()
+    sh = sh.cut(outer_slab(side, shin_plate_outline(), SHIN_Y[1] - INLAY, SHIN_Y[1] + 8))
+    for x, z in (KNEE, ANKLE):
+        sh = sh.cut(pin_hole_y(x, z, y0 - 2, y1 + 2))
+    return sh
+
+
+def shin_plate(side):
+    """Red plate on the outside of the shin, seated in a 1 mm pocket, with two raised lugs."""
+    base = outer_slab(side, offset_poly(shin_plate_outline(), -g()), SHIN_Y[1] - INLAY, SHIN_PLATE_Y[0])
+    lugs = [outer_slab(side, offset_poly(l, -g()), SHIN_PLATE_Y[0] - 0.01, SHIN_PLATE_Y[1]) for l in SHIN_LUGS_XZ]
+    p = base.fuse(lugs).removeSplitter()
+    # Keep the upper lug clear of the thigh plate it tucks under.
+    return p.cut(outer_slab(side, offset_poly(THIGH_XZ, 0.4), THIGH_Y[0] - 0.4, THIGH_Y[1] + 1))
+
+
+def foot(side):
+    y0, y1 = ys(side, FOOT_Y)
+    f = prism_xz(FOOT_SIDE, y0, y1)
+    f = try_fillet(f, 0.6)
+    for pair in FORK_Y:
+        a, b = ys(side, pair)
+        fork = capsule_xz((ANKLE[0], FORK_R), FORK_R, ANKLE, FORK_R, a, b)
+        f = f.fuse(fork)
+    f = f.removeSplitter()
+    a, b = ys(side, (FORK_Y[0][0], FORK_Y[1][1]))
+    return f.cut(pin_hole_y(ANKLE[0], ANKLE[1], a, b))
+
+
+# ---------------------------------------------------------------- stand
+# The figure's centre of mass sits about 1 mm in front of the heels, so it
+# needs a base to stand reliably. Feet glue into 1.2 mm pockets.
+STAND = dict(cx=10.0, rx=78.0, ry=48.0, z0=-4.0, z1=1.2)
+
+
+def stand():
+    st = STAND
+    e = Part.Ellipse(V(s(st["cx"]), 0, s(st["z0"])), s(st["rx"]), s(st["ry"]))
+    plate = Part.Face(Part.Wire(e.toShape())).extrude(V(0, 0, s(st["z1"] - st["z0"])))
+    plate = try_fillet(plate, 1.0, [ed for ed in plate.Edges if abs(ed.BoundBox.ZMax - s(st["z1"])) < 1e-6])
+    for side in (1, -1):
+        y0, y1 = ys(side, (FORK_Y[0][0], FORK_Y[1][1]))
+        pocket = box(FOOT_SIDE[0][0] - g(), FOOT_SIDE[1][0] + g(), y0 - g(), y1 + g(), 0, st["z1"] + 1)
+        plate = plate.cut(pocket)
+    return plate
+
+
+# ---------------------------------------------------------------- assembly
+def parts():
+    """List of (name, shape, colour, note) for every printable part."""
+    hs = head_solid()
+    out = [
+        ("head_shell", head_shell(), WHITE, "头壳（米白）；顶带、侧板、红条、绿灯、眼睛都是嵌件"),
+        ("head_top_band", hs.common(top_band_region(g())), GREY, "头顶灰色横带"),
+        ("head_light", hs.common(light_region(g())), GREEN, "头后斜面的绿色灯条"),
+    ]
+    for side, tag in ((1, "left"), (-1, "right")):
+        out += [
+            (f"head_side_panel_{tag}", hs.common(side_region(SIDE_PANEL, side, g())), GREY, "头侧灰板"),
+            (f"head_red_stripe_{tag}", hs.common(side_region(RED_STRIPE, side, g())), RED, "头侧上沿红条"),
+            (f"snout_red_{tag}", hs.common(side_region(SNOUT_RED, side, g(), SNOUT_Y)), RED, "口鼻两侧红块"),
+        ]
+    for tag, e in EYES.items():
+        out += [
+            (f"eye_ring_{tag}", eye_ring(e), e["ring"], f"{'右' if tag == 'right' else '左'}眼外圈"),
+            (f"lens_{tag}", lens(e), e["lens"], f"{'右眼蓝色' if tag == 'right' else '左眼浅灰'}镜头"),
+        ]
+    for side, tag in ((1, "left"), (-1, "right")):
+        out += [
+            (f"ear_{tag}", ear_disc(side), WHITE, "耳盘（米白，外圈槽里涂红）"),
+            (f"ear_centre_{tag}", ear_centre(side), GREY, "耳盘中心灰件"),
+            (f"antenna_{tag}", antenna(side), WHITE, "天线；可换 2 mm 黄铜棒"),
+        ]
+    out += [
+        ("neck", neck(), WHITE, "斜向方颈，两端各插 8 mm"),
+        ("torso", torso(), WHITE, "躯干；髋部 3 mm 通孔"),
+        ("chest_plate", chest_plate(), GREY, "胸前灰板"),
+        ("chest_tab", chest_tab(), RED, "胸口上沿红色小块"),
+    ]
+    for side, tag in ((1, "left"), (-1, "right")):
+        out += [
+            (f"thigh_{tag}", thigh(side), WHITE, "大腿板"),
+            (f"thigh_channel_{tag}", thigh_channel(side), RED, "大腿红槽底板"),
+            (f"thigh_rod_{tag}", thigh_rod(side), GREY, "大腿红槽里的螺杆"),
+            (f"thigh_piston_{tag}", thigh_piston(side), GREY, "大腿侧槽里的螺纹柱"),
+            (f"knee_cap_{tag}", knee_cap(side), GREY, "膝盖螺栓盖"),
+            (f"shin_{tag}", shin(side), WHITE, "小腿"),
+            (f"shin_plate_{tag}", shin_plate(side), RED, "小腿外侧红板，带两个凸耳"),
+            (f"foot_{tag}", foot(side), DARK, "脚"),
+        ]
+    out.append(("stand", stand(), DARK, "展示底座（可选）：重心离脚跟只有约 1 mm，建议把脚粘进底座的凹槽"))
+    return out
+
+
+def build_document(name="BD1"):
+    doc = App.newDocument(name)
+    for pname, shape, colour, note in parts():
+        obj = doc.addObject("Part::Feature", pname)
+        obj.Shape = shape
+        obj.Label2 = note
+        if App.GuiUp:
+            obj.ViewObject.ShapeColor = colour
+    doc.recompute()
+    return doc

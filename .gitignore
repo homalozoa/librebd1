@@ -1,0 +1,8 @@
+# Downloaded reference model: no license file, keep it out of history.
+bd-1-droid-star-wars-jedi-fallen-order/
+# Generated from the reference and the model; rebuild with the scripts.
+ref/
+views/
+stl/
+__pycache__/
+*.FCBak
