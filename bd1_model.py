@@ -125,11 +125,11 @@ HOOD_OUTER = [(53.7, 152.3), (53.5, 154.5), (51.5, 162.6), (49.5, 170.2), (47.5,
 HOOD_INNER = [(50.6, 140.0), (50.6, 152.5), (49.5, 160.8), (47.5, 168.6), (45.5, 175.2), (43.5, 179.1),
               (41.5, 180.5)]
 # Lower edge of the face panel: it reaches down into the two chin tabs and opens into a
-# slot between the eyes.
+# slot between the eyes, which widens under the hood's top plate.
 GOGGLE = [(50.3, 153.0), (49.0, 152.2), (47.0, 151.3), (45.0, 150.5), (43.0, 149.9), (40.0, 149.75),
           (37.0, 149.9), (35.0, 150.2), (33.0, 150.6), (31.0, 151.2), (29.0, 151.8), (27.0, 152.6),
           (25.0, 153.5), (23.0, 154.5), (21.0, 155.7), (19.0, 157.0), (17.0, 158.4), (15.0, 160.2),
-          (13.0, 162.8), (11.0, 170.5), (9.0, 175.0), (8.0, 180.5)]
+          (13.0, 162.8), (11.0, 170.5), (9.0, 175.0), (8.5, 177.5), (12.0, 178.4), (16.5, 180.5)]
 CHIN_Z = 149.5                   # lowest point of the chin tabs
 # Arched cut-out under the nose in the main head's front face, and the notch at its top.
 NOSE_ARCH = [(16.5, 152.3), (15.0, 154.1), (13.0, 156.3), (11.0, 158.4), (9.0, 160.3), (7.0, 162.0),
@@ -142,14 +142,17 @@ TOP_BAND_X = (-4.0, 34.2)
 SIDE_PANEL = [(-2.0, 180.0), (32.5, 180.0), (32.5, 159.5), (16.5, 159.5)]
 RED_STRIPE = [(-44.0, 182.8), (51.0, 182.8), (51.0, 187.8), (-45.8, 187.8)]
 SNOUT_RED = dict(x=(53.5, 65.5), z=(156.5, 180.0))   # red patch on the curved hood walls
-EYES = {  # BD-1's right eye is the larger one with a blue lens.
-    "right": dict(y=-29.25, z=166.3, r=13.0, lens_r=8.6, front=76.1, ring=RED, lens=BLUE),
-    "left": dict(y=26.5, z=166.3, r=10.6, lens_r=8.4, front=76.6, ring=GREY, lens=LENS_GREY,
-                 nub=(2.4, 77.8)),   # small centre knob: radius, front
+# BD-1's right eye is the larger one with a blue lens and a set-back lip (width, depth)
+# inside its barrel; the left lens carries a small raised ring round a shallow cup
+# (outer radius, inner radius, top, cup floor). Lens dome heights from the reference.
+EYES = {
+    "right": dict(y=-29.25, z=166.3, r=13.0, lens_r=8.6, front=76.2, dome=5.0, lip=(1.5, 2.0),
+                  ring=RED, lens=BLUE),
+    "left": dict(y=26.5, z=166.3, r=10.4, lens_r=8.4, front=76.3, dome=4.0, lip=None,
+                 nub=(3.2, 2.4, 77.8, 76.0), ring=GREY, lens=LENS_GREY),
 }
 EYE_BACK = 54.0           # floor of the eye sockets, 6 mm behind the face panel
 RING_FRONT = 72.0
-RING_LIP = (1.5, 2.0)     # inner lip of the eye barrel: width, how far it is set back
 EAR = dict(x=-28.3, z=171.0, r=16.4, y0=HEAD_Y, y1=62.85)
 # Ear relief as (radius, distance from the centre plane), fitted round the rim's centre:
 # an outer ring with a flat rim and bevelled edge, and the grey centre that sits inside
@@ -303,24 +306,25 @@ def head_shell():
 def eye_ring(e):
     """Eye barrel: seated 6 mm in the face panel, standing out to RING_FRONT, with a set-back inner lip."""
     outer = cyl_x(e["y"], e["z"], e["r"], EYE_BACK, RING_FRONT)
-    inner = cyl_x(e["y"], e["z"], e["lens_r"] + g(), EYE_BACK - 1, RING_FRONT + 1)
-    lip_w, lip_d = RING_LIP
-    lip = cyl_x(e["y"], e["z"], e["lens_r"] + g() + lip_w, RING_FRONT - lip_d, RING_FRONT + 1)
-    return outer.cut([inner, lip])
+    cuts = [cyl_x(e["y"], e["z"], e["lens_r"] + g(), EYE_BACK - 1, RING_FRONT + 1)]
+    if e["lip"]:
+        lip_w, lip_d = e["lip"]
+        cuts.append(cyl_x(e["y"], e["z"], e["lens_r"] + g() + lip_w, RING_FRONT - lip_d, RING_FRONT + 1))
+    return outer.cut(cuts)
 
 
 def lens(e):
-    r = e["lens_r"]
-    body = cyl_x(e["y"], e["z"], r, EYE_BACK, e["front"] - 2.5)
-    dome_h = 2.5
+    r, dome_h = e["lens_r"], e["dome"]
+    body = cyl_x(e["y"], e["z"], r, EYE_BACK, e["front"] - dome_h)
     sph_r = (r * r + dome_h * dome_h) / (2 * dome_h)
     sph = Part.makeSphere(s(sph_r), V(s(e["front"] - sph_r), s(e["y"]), s(e["z"])))
-    cap = sph.common(cyl_x(e["y"], e["z"], r, e["front"] - 2.5, e["front"] + 1))
-    parts = [cap]
+    cap = sph.common(cyl_x(e["y"], e["z"], r, e["front"] - dome_h, e["front"] + 1))
+    lens_solid = body.fuse(cap).removeSplitter()
     if "nub" in e:
-        nub_r, nub_front = e["nub"]
-        parts.append(cyl_x(e["y"], e["z"], nub_r, e["front"] - 1.0, nub_front))
-    return body.fuse(parts).removeSplitter()
+        r_out, r_in, top, cup = e["nub"]
+        ring = cyl_x(e["y"], e["z"], r_out, e["front"] - 1.5, top)
+        lens_solid = lens_solid.fuse(ring).cut(cyl_x(e["y"], e["z"], r_in, cup, top + 1)).removeSplitter()
+    return lens_solid
 
 
 def revolve_ear(profile, side):
@@ -383,8 +387,8 @@ TORSO_YZ = [(-26.7, 94.0), (-26.7, 122.0), (-25.3, 122.4), (-25.2, 128.3), (-17.
             (-25.0, 86.2), (-25.3, 93.6)]
 # Plan outline: sides taper towards the front and step out round the hip.
 TORSO_XY = [(-17.8, -24.0), (-17.8, 24.0), (-11.3, 25.3), (-10.9, 26.7), (17.0, 26.7), (17.4, 25.3),
-            (35.4, 22.0), (36.3, 19.5), (36.3, -19.5), (35.4, -22.0), (17.4, -25.3), (17.0, -26.7),
-            (-10.9, -26.7), (-11.3, -25.3)]
+            (24.0, 24.7), (33.8, 23.0), (36.3, 21.0), (36.3, -21.0), (33.8, -23.0), (24.0, -24.7),
+            (17.4, -25.3), (17.0, -26.7), (-10.9, -26.7), (-11.3, -25.3)]
 CHEST_DEPTH = 5.2                    # the grey chest plate sits this far behind the front face
 # Recessed back panel: outline at the back face and at its floor (y half-width, z0, z1, x).
 BACK_PANEL = dict(face=(21.5, 89.5, 125.0, -17.8), floor=(19.5, 92.0, 122.0, -13.9))
@@ -536,7 +540,7 @@ def thigh_solid(side):
     t = outer_slab(side, THIGH_XZ, *THIGH_Y)
     edges = [e for e in t.Edges if abs(e.BoundBox.YLength) < 1e-6 and abs(abs(e.BoundBox.Center.y) - s(THIGH_Y[1])) < 1e-6]
     try:
-        return t.makeChamfer(s(0.8), edges)
+        return t.makeChamfer(s(1.5), edges)
     except Exception:
         return t
 
