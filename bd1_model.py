@@ -491,10 +491,11 @@ def back_panel_recess():
 def torso():
     t = torso_solid()
     lip_w, lip_top = HIP_RECESS_LIP
-    # The lip runs under the thigh's rim there; trim it so the parts don't collide.
+    # Under the thigh's rim the lip is lowered just enough to clear it.
     under_thigh = offset_poly(THIGH_XZ, g())
+    clear = THIGH_Y[0] - GLUE_GAP / K
     lip_ring = [outer_slab(side, offset_poly(HIP_RECESS_XZ, lip_w), TORSO["y"] - 0.01, lip_top)
-                .cut(outer_slab(side, under_thigh, TORSO["y"], lip_top + 1)) for side in (1, -1)]
+                .cut(outer_slab(side, under_thigh, clear, lip_top + 1)) for side in (1, -1)]
     t = t.fuse(lip_ring)
     recesses = [outer_slab(side, HIP_RECESS_XZ, HIP_RECESS_FLOOR, lip_top + 1) for side in (1, -1)]
     t = t.cut([chest_plate_region(0), back_panel_recess(), neck_body(g()),
@@ -572,11 +573,12 @@ SHANK = dict(start=(-3.85, 95.20), end=(-0.58, 100.89), r=2.35, top=35.62)  # pl
 SLOT_XZ = [(1.5, 87.0), (10.5, 104.0), (14.5, 102.0), (5.5, 85.0)]
 SLOT_DEPTH = 1.5
 PISTON = dict(start=(3.61, 85.60), end=(12.74, 103.22), r=2.2, top=33.2, cap_r=2.27, cap_top=33.76, cap_len=6.9)
-# Knee bolt as (radius, distance from the centre plane): bevelled base, ring, boss; a
-# six-point star socket (outer, inner radius, floor) in the boss; it sits in a pocket
-# that leaves a visible groove round it.
-KNEE_CAP = dict(profile=[(9.2, 32.6), (7.5, 34.6), (7.4, 34.79), (4.9, 34.79), (4.9, 35.16), (0.0, 35.16)],
-                star=(3.0, 2.3, 33.65), pocket_r=10.4, sink=1.5)
+# Knee bolt as (radius, distance from the centre plane): bevelled base, ring, a narrow
+# groove, the boss, and a round socket in the middle (the star on the reference is only
+# texture). It sits in a pocket that leaves a visible groove round it.
+KNEE_CAP = dict(profile=[(9.2, 32.6), (7.5, 34.6), (7.4, 34.79), (5.5, 34.79), (5.5, 33.6), (4.9, 33.6),
+                         (4.9, 35.16), (2.9, 35.16), (2.9, 33.6), (0.0, 33.6)],
+                pocket_r=9.9, sink=1.5)
 THIGH_BEVEL = 1.25               # the outer face is this much smaller than the outline all round
 # Red shin plate and its two lugs, traced the same way.
 SHIN_PLATE_XZ = [(-10.5, 59.5), (-9.3, 59.0), (-8.2, 59.0), (-3.0, 64.0), (-1.5, 64.5), (31.0, 26.5),
@@ -587,7 +589,7 @@ FOOT_Y = (17.9, 27.2)
 # Foot plate side profile (x, z) and its two through-slots, measured from the reference.
 FOOT_SIDE = [(9.5, 0.0), (56.6, 0.0), (56.6, 3.1), (54.8, 4.1), (50.0, 5.2), (31.0, 5.3), (25.0, 4.1),
              (20.0, 2.3), (17.5, 1.7), (13.0, 1.7), (11.5, 1.2), (9.5, 0.1)]
-FOOT_SLOTS = dict(x=((31.3, 36.5), (46.3, 48.9)), y=(19.6, 24.6))
+FOOT_SLOTS = dict(x=((31.3, 36.5), (46.3, 48.9)), y=(19.6, 24.6), floor=0.4)   # slots keep a thin floor
 # Ankle fork: two side plates round the end of the shin, joined by a low cross block.
 FORK_Y = ((16.6, 19.0), (26.1, 28.2))
 FORK_XZ = [(36.5, 0.0), (46.0, 0.0), (46.0, 5.9), (41.2, 13.0), (39.8, 13.2), (36.5, 12.0)]
@@ -734,18 +736,11 @@ def thigh_piston(side):
 
 
 def knee_cap(side):
-    """Grey knee bolt revolved from KNEE_CAP's profile, with a six-point star socket."""
+    """Grey knee bolt revolved from KNEE_CAP's profile."""
     kc = KNEE_CAP
     y_in = THIGH_Y[1] - kc["sink"]
     profile = [(0.0, y_in), (kc["profile"][0][0], y_in)] + kc["profile"]
     cap = revolve_y(profile, KNEE[0], KNEE[1], side)
-    r_out, r_in, floor = kc["star"]
-    top = kc["profile"][-1][1]
-    star = Part.makePolygon([V(s(KNEE[0] + (r_out if i % 2 == 0 else r_in) * math.cos(i * math.pi / 6)),
-                               s(side * floor),
-                               s(KNEE[1] + (r_out if i % 2 == 0 else r_in) * math.sin(i * math.pi / 6)))
-                             for i in range(13)])
-    cap = cap.cut(Part.Face(star).extrude(V(0, s(side * (top - floor + 1)), 0)))
     peg = Part.makeCylinder(PIN_D / 2, s(4), V(s(KNEE[0]), s(side * y_in), s(KNEE[1])), V(0, -side, 0))
     return cap.fuse(peg).removeSplitter()
 
@@ -779,7 +774,7 @@ def foot(side):
     y0, y1 = ys(side, FOOT_Y)
     f = prism_xz(FOOT_SIDE, y0, y1)
     for x0, x1 in FOOT_SLOTS["x"]:
-        f = f.cut(box(x0, x1, *ys(side, FOOT_SLOTS["y"]), -1, 10))
+        f = f.cut(box(x0, x1, *ys(side, FOOT_SLOTS["y"]), FOOT_SLOTS["floor"], 10))
     fork = [prism_xz(FORK_XZ, *ys(side, pair)) for pair in FORK_Y]
     blk = FORK_BLOCK
     fork.append(box(*blk["x"], *ys(side, (FORK_Y[0][1] - 0.01, FORK_Y[1][0] + 0.01)), *blk["z"]))
