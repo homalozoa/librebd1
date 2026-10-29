@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>openbd1 · 可打印的 BD-1</title>
+  <meta name="description" content="openbd1：分模块、可分色打印的 BD-1 机器人。拖动、拆开、摆上打印板，一步步装起来。">
+  <meta name="theme-color" content="#f0eee6">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23d97757'/%3E%3Cpath d='M9 11h14v6H9zM13 17v5M19 17v5' stroke='%23faf9f5' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#top"><span class="dot"></span>openbd1</a>
+    <nav aria-label="页面导航">
+      <a href="#colours">颜色</a>
+      <a href="#print">打印</a>
+      <a href="#assemble">装配</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <p class="eyebrow">非官方 · 非商业 · 同人作品</p>
+      <h1>一个可以自己打印的 BD&#8209;1。</h1>
+      <p class="lede">54 个零件，分色、分件打印，用销钉和胶水装起来，关节还能动。下面这个模型就是真实的 STL：拖一拖，拆开看看，再把它们摆上打印板。</p>
+    </section>
+
+    <section class="stage" aria-label="三维模型">
+      <div class="viewer" id="viewer">
+        <div class="loading" id="loading">载入中…</div>
+        <div class="hint" id="hint">拖动旋转　滚轮缩放　点击零件</div>
+        <aside class="info" id="info" aria-live="polite"></aside>
+        <div class="ctrl">
+          <div class="seg" role="group" aria-label="视图">
+            <button data-mode="assembled" aria-pressed="true">装好</button>
+            <button data-mode="exploded" aria-pressed="false">拆开</button>
+            <button data-mode="print" aria-pressed="false">打印板</button>
+          </div>
+          <label class="slider" id="exWrap">拆开程度<input id="ex" type="range" min="0" max="1" step="0.01" value="0"></label>
+        </div>
+      </div>
+      <p class="stat"><span id="statParts">54</span> 个零件 · <span id="statTris"></span> 个三角面</p>
+    </section>
+
+    <section id="colours">
+      <h2>颜色与零件</h2>
+      <p class="lead">颜色取自参考贴图每个表面上的面积加权平均，每个色块都是单独零件。点一下色块，上面的模型只亮起这个颜色的零件。</p>
+      <div class="grid palette" id="palette"></div>
+    </section>
+
+    <section id="print">
+      <h2>打印</h2>
+      <p class="lead">下面是 3 块 256 × 256 mm 打印板上的排版（一台拜博 X1 / P1 的床面大小）。每个零件都转到了悬垂最少的方向，点一个方块，模型里会标出它。</p>
+      <div class="grid plates" id="plates"></div>
+      <div class="grid cards">
+        <article class="card"><h3>0.4 mm 喷嘴</h3><p>PLA 即可。小件和薄嵌件用 0.12–0.16 mm 层高；头壳 2–3 层壁、10–15 % 填充。</p></article>
+        <article class="card"><h3>先打一块试配</h3><p>先打一个 1 mm 的嵌件去试头壳上的凹槽。每边留了 0.2 mm 胶缝，太紧太松都取决于你的机器公差。</p></article>
+        <article class="card"><h3>薄嵌件容易翘边</h3><p>1 mm 厚的红色、灰色嵌件用低温床加边缘加粘，或者几张摆在一起打。</p></article>
+      </div>
+      <h3 class="tt">可能需要支撑的零件</h3>
+      <p class="note">按几何估算，悬垂面积大于 150 mm² 的列在这里。没有在具体切片软件里验证，以你的切片预览为准。</p>
+      <table id="oh"><thead><tr><th>零件</th><th>高度 mm</th><th>悬垂面积 mm²</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section id="assemble">
+      <h2>装配</h2>
+      <p class="lead">点一步，模型会拆开并只亮起这一步用到的零件。关节只靠摩擦定位，不要涂胶。</p>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </main>
+
+  <footer>
+    <p><b>协议</b>　脚本 MIT；模型文件（<code>BD1.FCStd</code>、STL、预览图）CC BY-NC-SA 4.0，禁止商用，请勿出售打印件。</p>
+    <p>BD-1 是 Lucasfilm / Disney 的角色，这里是与他们无关的非官方、非商业同人作品。测量用的参考网格没有许可证说明，没有放进仓库。</p>
+    <p>仓库里的 <code>README.md</code> 和 <code>PRINTING.md</code> 有完整的打印与装配指南。</p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

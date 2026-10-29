@@ -67,7 +67,7 @@ cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd 
 
 尺寸用 `BD1_HEIGHT` 控制，表示头顶高度（mm），默认 190。`BD1_HEIGHT=316` 接近真人大小。外形整体缩放，销孔、天线孔和胶缝保持实际尺寸不变，所以五金件不用换。
 
-打印和装配的完整步骤、零件清单和线材对照见 [PRINTING.md](PRINTING.md)；想在浏览器里拖动、拆开、看打印板排版，打开 [docs/index.html](docs/index.html)（需要本地服务器，见下面的“网页”一节；开 GitHub Pages 后可直接访问）。
+打印和装配的完整步骤、零件清单和线材对照见 [PRINTING.md](PRINTING.md)；想在浏览器里拖动、拆开、看打印板排版，见下面的“网页”一节。
 
 ## 零件与颜色
 
@@ -121,17 +121,25 @@ cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd 
 
 ## 网页
 
-`docs/index.html` 是一个星战风格的交互页面：真实 STL 做成的 3D 模型，可以拖动旋转、拆开、摆到打印板上，每一步装配都能点开高亮对应零件。它读 `docs/data/` 里的压缩数据，改了模型后重新生成：
+`web/` 是一个 Vite 项目：用真实 STL 做成的 3D 模型，可以拖动旋转、拆开、摆到打印板上，每一步装配都能点开高亮对应零件。three.js 和字体都从 npm 装进来、打进产物，部署后不依赖任何 CDN。
+
+```bash
+cd web
+npm install
+npm run dev        # 本地开发，http://localhost:5173
+npm run build      # 产物在 web/dist，纯静态文件
+```
+
+**部署到 GitHub Pages**：推到 GitHub 后，在仓库 Settings → Pages 里把 Source 选成 “GitHub Actions”。之后每次推送 `main` 上 `web/` 的改动，`.github/workflows/pages.yml` 会自己跑 `npm ci && npm run build` 并发布 `web/dist`。资源路径是相对的，放在 `https://用户名.github.io/openbd1/` 这样的子路径下也能用。
+
+页面读 `web/public/data/` 里的压缩网格，这份数据是提交进仓库的，所以部署不需要 FreeCAD。改了模型之后在本机重新生成，再提交：
 
 ```bash
 cd ~/bdx/openbd1
 /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
 /Applications/FreeCAD.app/Contents/Resources/bin/python -I render_print_layout.py
 /Applications/FreeCAD.app/Contents/Resources/bin/python -I pack_web.py
-cd docs && python3 -m http.server 8000
 ```
-
-然后打开 http://localhost:8000。三维库 three.js 从 cdnjs 加载，需要联网。
 
 ## 与参考网格对比
 

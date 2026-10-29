@@ -1,4 +1,4 @@
-"""Pack the part STLs into compact web data for docs/index.html: docs/data/bd1.bin + parts.json.
+"""Pack the part STLs into compact web data for the web app in web/: web/public/data/bd1.bin + parts.json.
 
 Run: /Applications/FreeCAD.app/Contents/Resources/bin/python -I pack_web.py
 
@@ -18,7 +18,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)  # -I drops the script's folder from the path
 import render_print_layout as R  # noqa: E402
-DATA = os.path.join(HERE, "docs", "data")
+DATA = os.path.join(HERE, "web", "public", "data")
 BED = 256.0
 MARGIN = 6.0
 

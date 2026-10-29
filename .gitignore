@@ -8,3 +8,7 @@ __pycache__/
 # Contains rendered reference textures; do not publish.
 compare_sheet.png
 .DS_Store
+
+# Web app build output
+web/node_modules/
+web/dist/
