@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>openbd1 · 可打印的 BD-1</title>
+<meta name="description" content="openbd1：分模块、可分色打印的 BD-1 机器人。拖动、拆开、摆上打印板，一步步装起来。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --space:#04050a; --panel:#0a0f1acc; --line:#1d3a52; --holo:#52d6ff; --holo-dim:#2a7a99;
+  --gold:#ffe81f; --red:#e8402a; --text:#c9d6e2; --mute:#6f8294;
+  --display:'Orbitron','Arial Black',system-ui,sans-serif; --body:'Rajdhani','PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--space);color:var(--text);font:500 17px/1.65 var(--body);overflow-x:hidden}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+main,header,footer{position:relative;z-index:1}
+a{color:var(--holo)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 24px;text-align:center}
+.eyebrow{font:500 12px var(--display);letter-spacing:.5em;color:var(--holo);text-transform:uppercase}
+h1{margin:14px 0 6px;font:900 clamp(40px,10vw,112px)/1 var(--display);letter-spacing:.12em;color:var(--gold);
+   text-shadow:0 0 28px #ffe81f33,0 2px 0 #a89400;text-transform:uppercase}
+h1 span{color:var(--red);text-shadow:0 0 28px #e8402a55,0 2px 0 #7a1d10}
+.sub{max-width:640px;margin:10px auto 0;color:var(--text);font-size:19px}
+.tagline{margin-top:18px;font:500 12px var(--display);letter-spacing:.3em;color:var(--mute)}
+
+/* ---------- viewer ---------- */
+.viewer{position:relative;margin:28px 0 0;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 60%,#0d1a2a 0%,#05080f 70%);
+  height:min(78vh,720px);min-height:460px;overflow:hidden;clip-path:polygon(0 18px,18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px))}
+.viewer canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+.viewer canvas:active{cursor:grabbing}
+.scan{position:absolute;left:0;right:0;height:120px;top:-120px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,#52d6ff14 70%,#52d6ff40 100%);animation:scan 6s linear infinite}
+@keyframes scan{to{top:100%}}
+.corner{position:absolute;width:22px;height:22px;border:2px solid var(--holo);pointer-events:none;opacity:.7}
+.c1{top:10px;left:10px;border-right:0;border-bottom:0}.c2{top:10px;right:10px;border-left:0;border-bottom:0}
+.c3{bottom:10px;left:10px;border-right:0;border-top:0}.c4{bottom:10px;right:10px;border-left:0;border-top:0}
+.hud{position:absolute;font:500 11px var(--display);letter-spacing:.18em;color:var(--holo);text-transform:uppercase;pointer-events:none}
+.hud.tl{top:18px;left:46px}.hud.tr{top:18px;right:46px;text-align:right}
+.hud b{color:var(--gold);font-weight:700}
+.ctrl{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;padding:14px 22px;
+  background:linear-gradient(0deg,#02040acc,transparent)}
+.tabs{display:flex;gap:6px}
+.tab{appearance:none;background:#0a1a2a99;border:1px solid var(--line);color:var(--text);padding:8px 16px;font:700 12px var(--display);letter-spacing:.14em;cursor:pointer;text-transform:uppercase}
+.tab:hover{border-color:var(--holo);color:#fff}
+.tab[aria-pressed=true]{background:var(--holo);color:#02121c;border-color:var(--holo)}
+.slider{display:flex;gap:10px;align-items:center;font:500 11px var(--display);letter-spacing:.14em;color:var(--mute)}
+input[type=range]{accent-color:var(--gold);width:180px}
+.info{position:absolute;top:46px;right:22px;width:min(300px,calc(100% - 44px));background:var(--panel);border:1px solid var(--line);padding:12px 14px;
+  backdrop-filter:blur(6px);font-size:15px;line-height:1.5;display:none}
+.info.on{display:block}
+.info h3{margin:0 0 4px;font:700 14px var(--display);letter-spacing:.1em;color:var(--gold)}
+.info code{color:var(--holo);font-size:13px}
+.info .sw{display:inline-block;width:12px;height:12px;border:1px solid #fff4;vertical-align:-1px;margin-right:6px}
+.info p{margin:6px 0 0;color:var(--text)}
+.info .warn{color:#ffb86b}
+.info button{margin-top:8px;background:none;border:1px solid var(--line);color:var(--mute);padding:3px 10px;cursor:pointer;font:600 12px var(--body)}
+.hint{position:absolute;left:46px;top:76px;max-width:240px;font-size:13px;color:var(--mute);pointer-events:none}
+.loading{position:absolute;inset:0;display:grid;place-items:center;font:700 13px var(--display);letter-spacing:.3em;color:var(--holo)}
+
+/* ---------- sections ---------- */
+section{padding:72px 0 8px}
+h2{margin:0 0 6px;font:900 clamp(22px,4vw,34px)/1.2 var(--display);letter-spacing:.14em;color:var(--gold);text-transform:uppercase}
+h2 small{display:block;margin-top:6px;font:500 15px var(--body);letter-spacing:.04em;color:var(--mute);text-transform:none}
+.lead{max-width:720px;color:var(--text)}
+.grid{display:grid;gap:14px;margin-top:26px}
+.palette{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.chip{display:flex;gap:12px;align-items:stretch;background:#0a0f1a99;border:1px solid var(--line);padding:0;cursor:pointer;color:inherit;text-align:left;font:inherit}
+.chip:hover{border-color:var(--holo)}
+.chip i{width:46px;flex:none}
+.chip div{padding:9px 10px 9px 0;font-size:14px;line-height:1.4}
+.chip b{display:block;font:700 12px var(--display);letter-spacing:.08em;color:#fff}
+.chip span{color:var(--mute)}
+.plates{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.plate{border:1px solid var(--line);background:#0a0f1a99;padding:12px}
+.plate h4{margin:0 0 8px;font:700 12px var(--display);letter-spacing:.18em;color:var(--holo)}
+.plate svg{display:block;width:100%;height:auto;background:#05080f}
+.plate rect{stroke:#0008;stroke-width:.6;cursor:pointer}
+.plate rect:hover{stroke:#fff;stroke-width:1.2}
+.cards{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{border:1px solid var(--line);background:#0a0f1a99;padding:16px 18px}
+.card h4{margin:0 0 6px;font:700 13px var(--display);letter-spacing:.12em;color:var(--gold)}
+.card p{margin:0;font-size:15.5px}
+table{width:100%;border-collapse:collapse;margin-top:18px;font-size:15px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font:700 11px var(--display);letter-spacing:.14em;color:var(--holo)}
+td.num{font-variant-numeric:tabular-nums;color:var(--gold)}
+tr.go{cursor:pointer}tr.go:hover td{background:#52d6ff12}
+.steps{counter-reset:s;list-style:none;margin:26px 0 0;padding:0;display:grid;gap:10px}
+.steps li{counter-increment:s}
+.steps button{width:100%;display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:start;text-align:left;background:#0a0f1a99;border:1px solid var(--line);
+  color:inherit;font:inherit;padding:14px 16px;cursor:pointer}
+.steps button:hover{border-color:var(--holo);background:#0d1c2c}
+.steps button::before{content:counter(s,decimal-leading-zero);font:900 26px/1 var(--display);color:var(--red)}
+.steps b{display:block;font:700 14px var(--display);letter-spacing:.1em;color:#fff;margin-bottom:2px}
+.steps span{color:var(--text);font-size:15.5px}
+.steps em{font-style:normal;color:var(--holo);font-size:12px;font-family:var(--display);letter-spacing:.12em;display:block;margin-top:5px}
+footer{margin-top:90px;padding:34px 0 60px;border-top:1px solid var(--line);color:var(--mute);font-size:14.5px}
+footer b{color:var(--text)}
+
+/* ---------- opening crawl ---------- */
+#crawl{position:fixed;inset:0;z-index:50;background:#000;overflow:hidden;perspective:340px;display:none}
+#crawl.on{display:block}
+#crawl .title{position:absolute;left:0;right:0;top:34%;text-align:center;font:500 22px var(--body);color:#4bd5ee;letter-spacing:.06em;animation:intro 5s ease forwards}
+#crawl .roll{position:absolute;left:50%;bottom:-20%;width:min(640px,86vw);margin-left:calc(min(640px,86vw) / -2);transform-origin:50% 100%;transform:rotateX(26deg);
+  color:var(--gold);font:700 clamp(22px,3.6vw,34px)/1.5 var(--display);text-align:justify;animation:roll 58s linear 4.5s forwards;opacity:0}
+#crawl .roll h3{text-align:center;font:900 1.2em var(--display);margin:0 0 .2em;letter-spacing:.14em}
+#crawl .roll p{margin:0 0 1.1em}
+#crawl button{position:absolute;right:20px;bottom:18px;z-index:2;background:none;border:1px solid #fff5;color:#fff;padding:8px 16px;font:700 12px var(--display);letter-spacing:.16em;cursor:pointer}
+@keyframes intro{0%{opacity:0}15%,75%{opacity:1}100%{opacity:0}}
+@keyframes roll{0%{opacity:1;transform:rotateX(26deg) translateY(0)}92%{opacity:1}100%{opacity:0;transform:rotateX(26deg) translateY(-230%)}}
+
+@media (max-width:720px){
+  .hero{padding-top:36px}.viewer{min-height:520px}.hint{display:none}
+  .ctrl{gap:8px;padding:10px}.tab{padding:7px 10px}input[type=range]{width:120px}
+}
+@media (prefers-reduced-motion:reduce){.scan{display:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+
+<div id="crawl" role="dialog" aria-label="开场字幕">
+  <div class="title">很久很久以前，在一间车库里……</div>
+  <div class="roll">
+    <h3>第一章<br>打印纪元</h3>
+    <p>银河系陷入内战。不对，是一台 3D 打印机陷入内战：层线、拉丝与翘边三方势力，围攻着一个未完成的 BD-1。</p>
+    <p>一位无名的造物者，用 FreeCAD 量过每一毫米，把机器人拆成 54 个零件，让它们可以分色、分件、一件件地打出来，再用胶和三毫米的销钉重新拼回去。</p>
+    <p>现在，这份图纸向所有同好开放。拖动、拆开、摆上打印板，然后动手吧。愿胶水与你同在……</p>
+  </div>
+  <button id="skip">跳过 ▸</button>
+</div>
+
+<header class="wrap hero">
+  <div class="eyebrow">非官方 · 非商业 · 同人作品</div>
+  <h1>open<span>bd</span>1</h1>
+  <p class="sub">一个可以自己打印的 BD-1。54 个零件，分色、分件，销钉加胶水装成，关节能动。</p>
+  <div class="tagline">拖动旋转 · 滚轮缩放 · 点击零件</div>
+</header>
+
+<main class="wrap">
+  <div class="viewer" id="viewer">
+    <div class="scan"></div>
+    <i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i>
+    <div class="hud tl">BD-1 <b>HOLO-SCAN</b><br><span id="hudMode">ASSEMBLED</span></div>
+    <div class="hud tr"><span id="hudParts">54</span> PARTS<br><span id="hudTris"></span></div>
+    <div class="hint" id="hint">点任意零件，看它的颜色、数量和打印方向。</div>
+    <div class="info" id="info"></div>
+    <div class="loading" id="loading">LOADING DATABANKS …</div>
+    <div class="ctrl">
+      <div class="tabs" role="group" aria-label="视图">
+        <button class="tab" data-mode="assembled" aria-pressed="true">装好</button>
+        <button class="tab" data-mode="exploded" aria-pressed="false">拆开</button>
+        <button class="tab" data-mode="print" aria-pressed="false">打印板</button>
+      </div>
+      <label class="slider" id="exWrap">拆开程度 <input id="ex" type="range" min="0" max="1" step="0.01" value="0"></label>
+    </div>
+  </div>
+</main>
+
+<main class="wrap">
+  <section id="colours">
+    <h2>Colours<small>颜色与零件</small></h2>
+    <p class="lead">颜色是参考贴图每个表面上的面积加权平均。每个色块都是单独零件，可以分色打印；点一下色块，上面的 BD-1 会只亮起这个颜色的零件。</p>
+    <div class="grid palette" id="palette"></div>
+  </section>
+
+  <section id="print">
+    <h2>Print<small>打印</small></h2>
+    <p class="lead">下面是 3 块 256×256 mm 打印板（一台拜博 X1 / P1 的床面大小）上的排版，每个零件已经转到悬垂最少的方向。点方块，上面的 3D 视图会把它标出来。</p>
+    <div class="grid plates" id="plates"></div>
+    <div class="grid cards">
+      <div class="card"><h4>0.4 mm 喷嘴</h4><p>PLA 即可。小件和薄嵌件用 0.12–0.16 mm 层高；头壳 2–3 层壁、10–15 % 填充。</p></div>
+      <div class="card"><h4>先试一块</h4><p>先打一个 1 mm 的嵌件去试头壳上的凹槽，每边留了 0.2 mm 胶缝，太紧太松都是你机器的公差。</p></div>
+      <div class="card"><h4>灯板最容易翘</h4><p>它很薄又很长，用低温床加边缘加粘；其他 1 mm 的红色嵌件同理。</p></div>
+    </div>
+    <table id="oh"><thead><tr><th>需要支撑的零件</th><th>数量</th><th>高度 mm</th><th>悬垂面积 mm²</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <section id="assemble">
+    <h2>Assemble<small>装配</small></h2>
+    <p class="lead">点一步，上面的模型会拆开并只亮起这一步用到的零件。关节只靠摩擦定位，不要涂胶。</p>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <footer>
+    <p><b>协议</b>　脚本 MIT；模型文件（<code>BD1.FCStd</code>、STL、预览图）CC BY-NC-SA 4.0，禁止商用，请勿出售打印件。</p>
+    <p>BD-1 是 Lucasfilm / Disney 的角色，这里是与他们无关的非官方、非商业同人作品。测量用的参考网格没有许可证说明，没有放进仓库。</p>
+    <p><a href="../README.md">README</a> · <a href="../PRINTING.md">完整打印与装配指南</a></p>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+"use strict";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (s, r = document) => r.querySelector(s);
+const safe = f => { try { return f(); } catch (e) { return null; } };
+
+/* ---------------- starfield ---------------- */
+(() => {
+  const c = $("#stars"), g = c.getContext("2d");
+  let W, H, stars = [];
+  const seed = n => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  function size() {
+    const d = Math.min(devicePixelRatio || 1, 2);
+    W = c.width = innerWidth * d; H = c.height = innerHeight * d;
+    stars = Array.from({ length: Math.round(innerWidth * innerHeight / 3500) }, (_, i) =>
+      ({ x: seed(i) * W, y: seed(i + 999) * H, r: (0.4 + seed(i + 7) * 1.2) * d, z: 0.2 + seed(i + 31) * 0.8, p: seed(i + 5) * 6.28 }));
+  }
+  function draw(t) {
+    g.clearRect(0, 0, W, H);
+    const sy = scrollY * 0.15 * (devicePixelRatio || 1);
+    for (const s of stars) {
+      const a = reduce ? 0.7 * s.z : s.z * (0.55 + 0.45 * Math.sin(t / 900 * s.z + s.p));
+      g.fillStyle = `rgba(210,228,255,${a})`;
+      g.fillRect(s.x, (s.y - sy * s.z + H * 4) % H, s.r, s.r);
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  size(); addEventListener("resize", size);
+  reduce ? (draw(0), addEventListener("scroll", () => draw(0), { passive: true })) : requestAnimationFrame(draw);
+})();
+
+/* ---------------- opening crawl ---------------- */
+(() => {
+  const el = $("#crawl");
+  if (reduce || safe(() => sessionStorage.getItem("bd1crawl"))) return;
+  el.classList.add("on");
+  const end = () => { el.classList.remove("on"); safe(() => sessionStorage.setItem("bd1crawl", "1")); };
+  $("#skip").onclick = end;
+  $(".roll", el).addEventListener("animationend", end);
+  addEventListener("keydown", e => { if (e.key === "Escape") end(); });
+})();
+
+/* ---------------- data ---------------- */
+const LABEL = { head_shell: "头壳", head_top_band: "头顶带", head_light: "灯板", eye_ring: "眼筒", eye_band: "右眼红环", lens: "镜头",
+  ear: "耳盘外圈", ear_centre: "耳盘中心", antenna: "天线", antenna_collar: "天线套", neck: "脖子", torso: "躯干", chest_plate: "胸板",
+  chest_tab: "胸口红块", thigh: "大腿", thigh_channel: "槽上段凸块", thigh_channel_floor: "槽底", thigh_channel_tip: "槽顶小块",
+  thigh_rod: "螺杆", thigh_piston: "螺纹柱", knee_cap: "膝盖盖", shin: "小腿", shin_plate: "小腿红板", foot_heel: "脚后半段",
+  foot_front: "脚前半段", stand: "底座", paint: "头侧涂装嵌件", hip_pin: "髋销 3×65", knee_pin: "膝销 3×8", ankle_pin: "踝销 3×12" };
+const baseOf = n => /^paint_/.test(n) ? "paint" : n.replace(/_(left|right)$/, "");
+const labelOf = n => (LABEL[baseOf(n)] || n) + (/_left$/.test(n) ? "（左）" : /_right$/.test(n) ? "（右）" : "");
+const sideOf = n => /left/.test(n) ? 1 : /right/.test(n) ? -1 : 0;
+const NAMES_BY_HEX = { "#C9CFB0": "米白", "#B2A696": "暖米白", "#80786B": "暖灰", "#999996": "灰", "#82827D": "中灰", "#B8BAB0": "浅灰", "#B2B5B2": "镜头浅灰",
+  "#C40A08": "亮红", "#7A2B26": "暗红", "#5E3330": "深红褐", "#638599": "钢蓝", "#52A624": "绿", "#593D36": "深棕", "#595952": "深灰",
+  "#B2B59E": "浅灰绿", "#424242": "炭灰", "#33363B": "黑灰（底座）" };
+
+/* explode offsets, assembly coordinates: x forward, y to the left, z up (mm) */
+function explodeOf(n) {
+  const s = sideOf(n) || 1;
+  const t = [
+    [/^stand/, [0, 0, -95]], [/^head_shell/, [0, 0, 80]], [/^head_top_band/, [0, 0, 125]], [/^head_light/, [-60, 0, 95]],
+    [/^paint_.*top_edge/, [0, s * 15, 120]], [/^paint_.*hood_grey/, [30, s * 40, 95]], [/^paint_/, [0, s * 55, 85]],
+    [/^eye_ring/, [70, 0, 80]], [/^eye_band/, [95, 0, 80]], [/^lens/, [115, 0, 80]],
+    [/^ear_centre/, [0, s * 95, 80]], [/^ear_/, [0, s * 65, 80]], [/^antenna_collar/, [-10, s * 85, 115]], [/^antenna/, [-20, s * 85, 130]],
+    [/^neck/, [0, 0, 42]], [/^torso/, [0, 0, 0]], [/^chest_plate/, [60, 0, 0]], [/^chest_tab/, [60, 0, 35]],
+    [/^thigh_channel_floor/, [0, s * 70, 0]], [/^thigh_channel_tip/, [0, s * 80, 0]], [/^thigh_channel/, [0, s * 90, 0]],
+    [/^thigh_rod/, [0, s * 105, 12]], [/^thigh_piston/, [0, s * 105, 0]], [/^knee_cap/, [0, s * 105, -15]], [/^thigh_/, [0, s * 45, 0]],
+    [/^shin_plate/, [0, s * 90, -35]], [/^shin_/, [0, s * 45, -35]],
+    [/^foot_heel/, [0, s * 45, -80]], [/^foot_front/, [30, s * 45, -80]],
+    [/^hip_pin/, [0, 120, 0]], [/^knee_pin/, [0, s * 40, 0]], [/^ankle_pin/, [0, s * 40, -45]],
+  ];
+  return (t.find(([re]) => re.test(n)) || [0, [0, 0, 0]])[1];
+}
+
+const STEPS = [
+  ["试配", "先不涂胶，把所有嵌件放进各自的凹槽。太紧的用锉刀轻磨，不要硬压。", /^(paint_|head_top_band|head_light|eye_band|chest_)/, "嵌件"],
+  ["头部嵌件", "头顶带、两侧涂装件和右眼红环按凹槽方向粘进头壳，灯板粘在头后凹槽底。右侧（-y）和左侧（+y）图案不同，别装反。", /^(head_shell|paint_|head_top_band|head_light|eye_band)/, "头壳 · 涂装 · 灯板"],
+  ["眼睛", "眼筒插进面板上 6 mm 深的眼窝，再把镜头塞进眼筒。右眼是钢蓝的大镜头，左眼是浅灰的。", /^(head_shell|eye_|lens_)/, "眼筒 · 镜头"],
+  ["耳朵和天线", "耳盘中心灰件用自带的 3 mm 凸销插进头侧，外圈套在外面粘住。天线先套上锥形套，再插进 2.3 mm 的斜孔。", /^(head_shell|ear_|antenna)/, "耳盘 · 天线 · 套"],
+  ["躯干与脖子", "胸板粘进胸口凹槽底，红块粘在正面和顶部斜面的交界处。脖子两端各插进 8 mm 的斜孔。", /^(head_shell|neck|torso|chest_)/, "脖子 · 躯干 · 胸板"],
+  ["大腿", "先把深棕槽底、槽顶小块和红色凸块拼进槽里，再把螺杆粘在槽底（粗的一头对准六角凹坑下方），螺纹柱粘进侧槽，膝盖盖压进凹槽。", /^(thigh_|knee_cap)/, "大腿 · 螺杆 · 螺纹柱"],
+  ["小腿和脚", "红板嵌进 1 mm 凹槽，凸耳在两头。脚的深色后半段和浅色前半段在 x = 40.5 处对接粘牢。", /^(shin_|foot_)/, "小腿 · 红板 · 脚"],
+  ["关节销（不要涂胶）", "髋：3×65 mm 的销穿过左大腿、躯干、右大腿。膝：每侧一根 3×8 mm。踝：每侧一根 3×12 mm。靠摩擦定位，关节才能转。", /^(torso|thigh_(left|right)$|shin_(left|right)$|foot_|hip_pin|knee_pin|ankle_pin)/, "钢棒或 M3 螺丝"],
+  ["底座（必需）", "重心在脚跟后面，只靠两只脚站不住。把脚粘进底座的 1.2 mm 凹槽里。", /^(stand|foot_)/, "底座 · 脚"],
+];
+
+/* ---------------- viewer ---------------- */
+const host = $("#viewer");
+const canvas = document.createElement("canvas");
+host.insertBefore(canvas, host.firstChild);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 5, 4000);
+camera.up.set(0, 0, 1);
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x1a1210, 0.85));
+const key = new THREE.DirectionalLight(0xfff1dc, 1.5); key.position.set(250, -300, 500); scene.add(key);
+const rim = new THREE.DirectionalLight(0x52d6ff, 0.9); rim.position.set(-300, 300, 150); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xff7a4a, 0.35); fill.position.set(300, 250, -100); scene.add(fill);
+
+const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
+const holo = lin("#52d6ff");
+
+// holo floor under the droid
+const floor = new THREE.Group();
+{
+  const grid = new THREE.GridHelper(520, 26, holo, holo);
+  grid.rotation.x = Math.PI / 2; grid.position.z = -6;
+  grid.material.transparent = true; grid.material.opacity = 0.16;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(132, 135, 96), new THREE.MeshBasicMaterial({ color: holo, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
+  ring.position.set(10, 0, -5.5);
+  floor.add(grid, ring); scene.add(floor);
+}
+
+const items = []; // { name, mesh, mat, home, exv, pPos, pQuat, plate, hardware, p }
+const byName = new Map();
+let DATA = null;
+const bedGroup = new THREE.Group(); scene.add(bedGroup);
+
+const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+const GAP = 34;
+const plateX0 = n => -(n * 256 + (n - 1) * GAP) / 2;
+
+function addItem(name, geom, hex, home, extra = {}) {
+  const mat = new THREE.MeshStandardMaterial({ color: lin(hex), roughness: extra.rough ?? 0.58, metalness: extra.metal ?? 0.04, flatShading: true, transparent: true });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.copy(home); mesh.userData.name = name;
+  scene.add(mesh);
+  const it = { name, mesh, mat, home: home.clone(), exv: V(explodeOf(name)), hex, pPos: home.clone(), pQuat: new THREE.Quaternion(), plate: -1, hardware: !!extra.hardware, p: extra.p || null, op: 1, glow: 0 };
+  items.push(it); byName.set(name, it);
+  return it;
+}
+
+function pinGeom(len, r) {
+  const g = new THREE.CylinderGeometry(r, r, len, 20); g.rotateX(0); return g; // axis along Y already
+}
+
+async function load() {
+  const [meta, buf] = await Promise.all([fetch("data/parts.json").then(r => r.json()), fetch("data/bd1.bin").then(r => r.arrayBuffer())]);
+  DATA = meta;
+  let tris = 0;
+  const nPlates = meta.plates;
+  for (const p of meta.parts) {
+    const vq = new Uint16Array(buf, p.voff, p.nv * 3);
+    const pos = new Float32Array(p.nv * 3);
+    for (let i = 0; i < p.nv; i++) for (let k = 0; k < 3; k++) pos[i * 3 + k] = vq[i * 3 + k] * p.scale[k] + p.lo[k] - p.centre[k];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setIndex(new THREE.BufferAttribute(new Uint32Array(buf, p.ioff, p.nt * 3), 1));
+    geo.computeBoundingSphere();
+    const lens = /^lens/.test(p.name);
+    const it = addItem(p.name, geo, p.colour, V(p.centre), { p, rough: lens ? 0.15 : /^(knee_cap|thigh_rod|thigh_piston)/.test(p.name) ? 0.35 : 0.58, metal: lens ? 0.3 : /^(knee_cap|thigh_rod|thigh_piston)/.test(p.name) ? 0.45 : 0.04 });
+    tris += p.nt;
+    // print pose: rotate about the part's own centre, then put the rotated min corner on its bed slot
+    const m = p.rot;
+    const mat4 = new THREE.Matrix4().set(m[0][0], m[0][1], m[0][2], 0, m[1][0], m[1][1], m[1][2], 0, m[2][0], m[2][1], m[2][2], 0, 0, 0, 0, 1);
+    it.pQuat.setFromRotationMatrix(mat4);
+    const t = new THREE.Vector3(plateX0(nPlates) + p.plate * (256 + GAP) + p.bed[0] - p.rotMin[0], -128 + p.bed[1] - p.rotMin[1], p.dz);
+    it.pPos.copy(V(p.centre).applyMatrix4(mat4)).add(t);
+    it.plate = p.plate;
+  }
+  // hardware: steel pins
+  const steel = "#c8ccd2";
+  const pin = (name, len, c) => addItem(name, pinGeom(len, 1.5), steel, V(c), { hardware: true, metal: 0.8, rough: 0.25 });
+  pin("hip_pin", 65, [5, 0, 110.5]);
+  for (const [tag, s] of [["left", 1], ["right", -1]]) {
+    pin(`knee_pin_${tag}`, 8, [-17.5, s * 23, 72]);
+    pin(`ankle_pin_${tag}`, 12, [39.3, s * 22.5, 9.8]);
+  }
+  // print beds
+  for (let i = 0; i < nPlates; i++) {
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(256, 256), new THREE.MeshBasicMaterial({ color: lin("#0b1e30"), transparent: true, opacity: 0 }));
+    b.position.set(plateX0(nPlates) + i * (256 + GAP) + 128, 0, -0.3);
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry), new THREE.LineBasicMaterial({ color: holo, transparent: true, opacity: 0 }));
+    edge.position.copy(b.position);
+    bedGroup.add(b, edge);
+  }
+  $("#hudTris").textContent = (tris / 1000).toFixed(0) + "K TRIS";
+  $("#hudParts").textContent = items.length;
+  $("#loading").remove();
+  buildPage();
+}
+
+/* ---------------- state + animation ---------------- */
+const HOME_AZ = -0.75;
+const S = { mode: "assembled", ex: 0, exT: 0, pr: 0, prT: 0, az: HOME_AZ, el: 0.30, r: 470, target: new THREE.Vector3(10, 0, 100),
+  azT: HOME_AZ, elT: 0.30, rT: 470, tgT: new THREE.Vector3(10, 0, 100), idle: 0, sel: null, hover: null, set: null };
+
+const CAM = {
+  assembled: () => ({ tg: [10, 0, 100], r: 470, el: 0.30 }),
+  exploded: () => ({ tg: [10, 0, 125], r: 720, el: 0.26 }),
+  print: () => ({ tg: [0, 0, 0], r: printDist(), el: 0.95 }),
+};
+
+function printDist() {
+  // fit the three beds side by side: horizontal half-angle from the vertical fov and the aspect
+  const half = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect);
+  return Math.min(2200, (3 * 256 + 2 * GAP) / 2 / Math.tan(half) * 1.12);
+}
+
+function setMode(m, opts = {}) {
+  S.mode = m;
+  for (const b of document.querySelectorAll(".tab")) b.setAttribute("aria-pressed", String(b.dataset.mode === m));
+  S.prT = m === "print" ? 1 : 0;
+  if (m === "assembled") S.exT = 0;
+  if (m === "exploded") S.exT = opts.ex ?? Math.max(S.ex, 0.75);
+  if (m === "print") { S.exT = 0; S.azT = -Math.PI / 2; }
+  else if (Math.abs(S.azT + Math.PI / 2) < 0.2) S.azT = HOME_AZ;
+  $("#ex").value = S.exT;
+  $("#exWrap").style.visibility = m === "exploded" ? "visible" : "hidden";
+  $("#hudMode").textContent = { assembled: "ASSEMBLED", exploded: "EXPLODED VIEW", print: "PRINT BEDS" }[m];
+  const c = CAM[m]();
+  S.tgT.set(...c.tg); S.rT = c.r; S.elT = c.el;
+}
+
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  // keep the droid in frame on narrow screens
+  camera.fov = w / h < 0.9 ? 46 : 32; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+
+const tmpV = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), idQ = new THREE.Quaternion();
+const ease = (a, b, k) => a + (b - a) * k;
+let last = performance.now(), visible = true;
+new IntersectionObserver(e => { visible = e[0].isIntersecting; }, { threshold: 0 }).observe(host);
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  if (!visible || !items.length) return;
+  const k = reduce ? 1 : 1 - Math.exp(-dt * 5.5);
+  S.ex = ease(S.ex, S.exT, k); S.pr = ease(S.pr, S.prT, k);
+  S.az = ease(S.az, S.azT, k); S.el = ease(S.el, S.elT, k); S.r = ease(S.r, S.rT, k); S.target.lerp(S.tgT, k);
+  if (!reduce && S.mode !== "print" && S.idle <= 0) S.azT += dt * 0.12;
+  S.idle -= dt;
+  const pr = S.pr;
+  for (const it of items) {
+    tmpV.copy(it.home).addScaledVector(it.exv, S.ex);
+    if (it.hardware) {
+      it.mesh.position.copy(tmpV); it.mesh.scale.setScalar(Math.max(1 - pr * 1.05, 0.0001)); it.mesh.visible = pr < 0.98;
+    } else {
+      it.mesh.position.lerpVectors(tmpV, it.pPos, pr);
+      it.mesh.quaternion.slerpQuaternions(idQ, it.pQuat, pr);
+    }
+    const dim = S.set && !S.set.has(it.name);
+    const tgt = dim ? 0.1 : 1;
+    it.op = ease(it.op, tgt, k);
+    it.mat.opacity = it.op; it.mat.depthWrite = it.op > 0.95;
+    const gl = (S.hover === it.name ? 0.22 : 0) + (S.sel === it.name ? 0.3 : 0);
+    it.glow = ease(it.glow, gl, k);
+    it.mat.emissive.copy(holo).multiplyScalar(it.glow);
+  }
+  floor.visible = pr < 0.9; floor.children.forEach(c => { c.material.opacity = (c.type === "Mesh" ? 0.5 : 0.16) * (1 - pr); });
+  bedGroup.children.forEach((c, i) => { c.material.opacity = (c.type === "Mesh" ? 0.8 : 0.9) * pr; c.visible = pr > 0.01; });
+  const ce = Math.cos(S.el);
+  camera.position.set(S.target.x + S.r * ce * Math.cos(S.az), S.target.y + S.r * ce * Math.sin(S.az), S.target.z + S.r * Math.sin(S.el));
+  camera.lookAt(S.target);
+  renderer.render(scene, camera);
+}
+
+/* ---------------- interaction ---------------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(ev) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(items.filter(i => i.mesh.visible && i.op > 0.5).map(i => i.mesh), false)[0];
+  return hit ? hit.object.userData.name : null;
+}
+let drag = null, moved = 0, hoverT = 0;
+canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY }; moved = 0; canvas.setPointerCapture(e.pointerId); S.idle = 4; });
+canvas.addEventListener("pointermove", e => {
+  if (drag) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; moved += Math.abs(dx) + Math.abs(dy);
+    S.azT -= dx * 0.008; S.elT = Math.max(-0.2, Math.min(1.45, S.elT + dy * 0.006)); S.az = S.azT; S.el = S.elT; S.idle = 4;
+  } else if (performance.now() - hoverT > 60 && e.pointerType === "mouse") {
+    hoverT = performance.now(); S.hover = pick(e); canvas.style.cursor = S.hover ? "pointer" : "grab";
+  }
+});
+canvas.addEventListener("pointerup", e => { drag = null; if (moved < 5) select(pick(e)); });
+canvas.addEventListener("pointerleave", () => { S.hover = null; });
+canvas.addEventListener("wheel", e => { e.preventDefault(); S.rT = Math.max(160, Math.min(2200, S.rT * (1 + Math.sign(e.deltaY) * 0.08))); S.idle = 4; }, { passive: false });
+
+function select(name) {
+  S.sel = name; S.set = name ? new Set([name]) : null;
+  renderInfo(name ? [name] : []);
+}
+function highlight(names, label) {
+  S.sel = null; S.set = names && names.length ? new Set(names) : null;
+  renderInfo(names || [], label);
+}
+
+function renderInfo(names, label) {
+  const el = $("#info"); $("#hint").style.display = names.length ? "none" : "";
+  if (!names.length) { el.classList.remove("on"); return; }
+  el.classList.add("on");
+  let html;
+  if (names.length === 1) {
+    const it = byName.get(names[0]), p = it.p;
+    const count = it.hardware ? "硬件，不打印" : p ? `${labelOf(it.name)}` : "";
+    html = `<h3>${labelOf(it.name)}</h3><code>${it.name}</code><p><span class="sw" style="background:${it.hex}"></span>${NAMES_BY_HEX[it.hex.toUpperCase()] || it.hex} <code>${it.hex}</code></p>`;
+    if (p) html += `<p>打印板 ${p.plate + 1}，高 ${p.height} mm，悬垂 ${Math.round(p.overhang)} mm²` +
+      (p.overhang > 150 ? `<br><span class="warn">这个方向仍需要支撑。</span>` : `<br>基本不需要支撑。`) + `</p>`;
+    else html += `<p>${count}。3 mm 钢棒、铝棒或 M3 螺丝，摩擦定位，不涂胶。</p>`;
+  } else {
+    html = `<h3>${label || "已选中"}</h3><p>${names.length} 个零件亮起，其余变暗。</p>`;
+  }
+  html += `<button id="clr">清除选择</button>`;
+  el.innerHTML = html;
+  $("#clr").onclick = () => { S.sel = null; S.set = null; renderInfo([]); };
+}
+
+for (const b of document.querySelectorAll(".tab")) b.onclick = () => { setMode(b.dataset.mode); S.idle = 2; };
+$("#ex").oninput = e => { S.exT = +e.target.value; if (S.mode !== "exploded") setMode("exploded", { ex: S.exT }); };
+
+function toViewer() { host.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); }
+const match = re => items.filter(i => re.test(i.name)).map(i => i.name);
+
+/* ---------------- page sections ---------------- */
+function buildPage() {
+  // palette
+  const groups = new Map();
+  for (const it of items) { if (it.hardware) continue; const h = it.hex.toUpperCase(); (groups.get(h) || groups.set(h, []).get(h)).push(it.name); }
+  const pal = $("#palette");
+  [...groups.entries()].sort((a, b) => b[1].length - a[1].length).forEach(([hex, names]) => {
+    const bases = [...new Set(names.map(n => labelOf(n).replace(/（[左右]）/, "")))];
+    const b = document.createElement("button"); b.className = "chip";
+    b.innerHTML = `<i style="background:${hex}"></i><div><b>${NAMES_BY_HEX[hex] || hex}　${hex}</b><span>${bases.slice(0, 4).join("、")}${bases.length > 4 ? " 等" : ""}　×${names.length}</span></div>`;
+    b.onclick = () => { highlight(names, `${NAMES_BY_HEX[hex] || hex} ${hex}`); toViewer(); };
+    pal.appendChild(b);
+  });
+  // plate maps
+  const pl = $("#plates");
+  for (let i = 0; i < DATA.plates; i++) {
+    const box = document.createElement("div"); box.className = "plate";
+    const rects = DATA.parts.filter(p => p.plate === i).map(p =>
+      `<rect data-n="${p.name}" x="${p.bed[0]}" y="${256 - p.bed[1] - p.foot[1]}" width="${p.foot[0]}" height="${p.foot[1]}" fill="${p.colour}"><title>${labelOf(p.name)} · ${p.name}</title></rect>`).join("");
+    box.innerHTML = `<h4>PLATE ${i + 1}</h4><svg viewBox="0 0 256 256" role="img" aria-label="打印板 ${i + 1} 排版">${rects}</svg>`;
+    box.querySelectorAll("rect").forEach(r => r.onclick = () => { setMode("print"); select(r.dataset.n); toViewer(); });
+    pl.appendChild(box);
+  }
+  // overhang table
+  const tb = $("#oh tbody");
+  DATA.parts.filter(p => p.overhang > 150).sort((a, b) => b.overhang - a.overhang).forEach(p => {
+    const tr = document.createElement("tr"); tr.className = "go";
+    tr.innerHTML = `<td>${labelOf(p.name)} <code>${p.name}</code></td><td class="num">1</td><td class="num">${p.height}</td><td class="num">${Math.round(p.overhang)}</td>`;
+    tr.onclick = () => { setMode("print"); select(p.name); toViewer(); };
+    tb.appendChild(tr);
+  });
+  // steps
+  const ol = $("#steps");
+  STEPS.forEach(([title, text, re, tag]) => {
+    const li = document.createElement("li"), b = document.createElement("button");
+    b.innerHTML = `<div><b>${title}</b><span>${text}</span><em>${tag}</em></div>`;
+    b.onclick = () => {
+      setMode("exploded", { ex: 0.85 }); highlight(match(re), title); toViewer();
+    };
+    li.appendChild(b); ol.appendChild(li);
+  });
+}
+
+resize(); setMode("assembled"); S.az = HOME_AZ; requestAnimationFrame(frame);
+load().catch(err => { const l = $("#loading"); if (l) l.textContent = "载入失败：请用本地服务器打开（python3 -m http.server）。" + err; });
+})();
+</script>
+</body>
+</html>
