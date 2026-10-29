@@ -537,11 +537,12 @@ CHANNEL_FLOOR = 31.1             # visible floor of the red channel (top of the 
 CHANNEL_RAISED_XZ = [(-6.2, 104.0), (0.5, 114.6), (10.2, 108.9), (4.0, 97.5), (-1.2, 101.5), (-6.0, 103.0)]
 CHANNEL_RAISED_FACE = 32.4
 HEX_SOCKET = dict(x=1.5, z=105.6, r=3.0)   # hex recess in the upper channel, down to CHANNEL_FLOOR
-ROD = dict(start=(-11.5, 81.5), end=(-4.0, 95.5), r=1.5, top=34.9)      # threaded part
-SHANK = dict(start=(-4.0, 95.5), end=(-0.5, 101.5), r=2.4, top=35.6)   # plain bolt shank under the hex
+# Rod, shank and threaded cylinder fitted to the reference (axis ends, radius, top).
+ROD = dict(start=(-11.81, 81.41), end=(-3.85, 95.20), r=1.28, top=34.76)    # threaded part
+SHANK = dict(start=(-3.85, 95.20), end=(-0.58, 100.89), r=2.35, top=35.62)  # plain bolt shank under the hex
 SLOT_XZ = [(1.5, 87.0), (10.5, 104.0), (14.5, 102.0), (5.5, 85.0)]
 SLOT_DEPTH = 1.5
-PISTON = dict(start=(3.9, 87.3), end=(11.8, 102.0), r=1.7, top=33.2, cap_r=2.15, cap_top=33.8)
+PISTON = dict(start=(3.61, 85.60), end=(12.74, 103.22), r=2.2, top=33.2, cap_r=2.27, cap_top=33.76, cap_len=6.9)
 # Knee bolt as (radius, distance from the centre plane): bevelled base, ring, boss; a
 # six-point star socket (outer, inner radius, floor) in the boss; it sits in a pocket
 # that leaves a visible groove round it.
@@ -694,7 +695,9 @@ def thigh_piston(side):
     floor = THIGH_Y[1] - SLOT_DEPTH
     y_axis = PISTON["top"] - PISTON["r"]
     p, origin, d, L = _threaded(PISTON["start"], PISTON["end"], PISTON["r"], y_axis, side, 4, ridge=0.25)
-    cap = Part.makeCylinder(s(PISTON["cap_r"]), s(2.0), origin + d * s(L - 2.0), d)
+    # The cap is thicker and sits a little higher than the threaded body.
+    lift = V(0, s(side * (PISTON["cap_top"] - PISTON["cap_r"] - y_axis)), 0)
+    cap = Part.makeCylinder(s(PISTON["cap_r"]), s(PISTON["cap_len"]), origin + d * s(L - PISTON["cap_len"]) + lift, d)
     p = p.fuse(cap).removeSplitter()
     return p.common(outer_slab(side, offset_poly(SLOT_XZ, -g()), floor, PISTON["cap_top"]))
 
