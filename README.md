@@ -67,7 +67,7 @@ cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd 
 
 尺寸用 `BD1_HEIGHT` 控制，表示头顶高度（mm），默认 190。`BD1_HEIGHT=316` 接近真人大小。外形整体缩放，销孔、天线孔和胶缝保持实际尺寸不变，所以五金件不用换。
 
-打印和装配的完整步骤、零件清单和线材对照见 [PRINTING.md](PRINTING.md)。
+打印和装配的完整步骤、零件清单和线材对照见 [PRINTING.md](PRINTING.md)；想在浏览器里拖动、拆开、看打印板排版，打开 [docs/index.html](docs/index.html)（需要本地服务器，见下面的“网页”一节；开 GitHub Pages 后可直接访问）。
 
 ## 零件与颜色
 
@@ -118,6 +118,20 @@ cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd 
 - **腿件、脚**：侧面平放打印，层线顺着腿的方向。
 - **薄嵌件**：大多是 1 mm 厚，平放打印。用 0.4 mm 喷嘴、0.12–0.16 mm 层高。
 - **上色**：先上底漆，再喷米白。红色、灰色和深色部分是单独零件，不需要遮盖。耳朵外圈的细槽里描一圈红线。最后用深灰渗线液填面板线、耳朵环槽、大腿侧槽和脚上的通槽。
+
+## 网页
+
+`docs/index.html` 是一个星战风格的交互页面：真实 STL 做成的 3D 模型，可以拖动旋转、拆开、摆到打印板上，每一步装配都能点开高亮对应零件。它读 `docs/data/` 里的压缩数据，改了模型后重新生成：
+
+```bash
+cd ~/bdx/openbd1
+/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
+/Applications/FreeCAD.app/Contents/Resources/bin/python -I render_print_layout.py
+/Applications/FreeCAD.app/Contents/Resources/bin/python -I pack_web.py
+cd docs && python3 -m http.server 8000
+```
+
+然后打开 http://localhost:8000。三维库 three.js 从 cdnjs 加载，需要联网。
 
 ## 与参考网格对比
 
