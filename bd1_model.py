@@ -25,14 +25,24 @@ ROD_HOLE = 2.3       # hole for a 2 mm brass antenna rod
 GLUE_GAP = 0.2       # clearance per side for parts that slot into pockets
 INLAY = 1.0          # depth of colour inlay pockets
 
-# Paint colours (RGB 0..1), taken from the reference textures.
-WHITE = (0.88, 0.87, 0.78)
-GREY = (0.55, 0.56, 0.58)
-DARK = (0.20, 0.21, 0.23)
-RED = (0.72, 0.10, 0.10)
-BLUE = (0.15, 0.40, 0.65)
-LENS_GREY = (0.78, 0.79, 0.80)
-GREEN = (0.30, 0.75, 0.30)
+# Paint colours (RGB 0..1): area-weighted means of the reference texture on each surface.
+WHITE = (0.79, 0.81, 0.69)          # head, torso, neck, antenna rod
+WARM_WHITE = (0.70, 0.65, 0.59)     # thigh plate, ear ring
+SHIN_GREY = (0.50, 0.47, 0.42)      # shin
+GREY = (0.60, 0.60, 0.59)           # top band, side panel, chest plate, top edges
+MID_GREY = (0.51, 0.51, 0.49)       # knee bolt, rod, threaded cylinder, ear centre
+LIGHT_GREY = (0.72, 0.73, 0.69)     # left eye barrel
+LENS_GREY = (0.70, 0.71, 0.70)      # left lens
+RED = (0.77, 0.04, 0.03)            # head markings, eye band
+DARK_RED = (0.48, 0.17, 0.15)       # shin plates, thigh patch, chest tab
+OXBLOOD = (0.37, 0.20, 0.19)        # right eye barrel
+BLUE = (0.39, 0.52, 0.60)           # right lens
+GREEN = (0.32, 0.65, 0.14)          # light panel
+CHANNEL_BROWN = (0.35, 0.24, 0.21)  # thigh channel floor
+FOOT_DARK = (0.35, 0.35, 0.32)      # back of the foot
+FOOT_LIGHT = (0.70, 0.71, 0.62)     # front of the foot, ankle fork
+COLLAR_GREY = (0.26, 0.26, 0.26)    # antenna collar
+DARK = (0.20, 0.21, 0.23)           # display stand (not part of BD-1)
 
 
 def s(x):
@@ -177,9 +187,9 @@ PAINT_FACE_Y = {"side": HEAD_Y, "edge": 54.8}   # face the pocket is measured fr
 # (outer radius, inner radius, top, cup floor). Lens dome heights from the reference.
 EYES = {
     "right": dict(y=-29.25, z=166.3, r=13.0, lens_r=8.6, front=76.2, dome=5.0, lip=(1.5, 2.0),
-                  ring=GREY, lens=BLUE, band=(10.75, 12.25)),   # red band on the barrel's front face
+                  ring=OXBLOOD, lens=BLUE, band=(10.75, 12.25)),   # red band on the barrel's front face
     "left": dict(y=26.5, z=166.3, r=10.4, lens_r=8.4, front=76.3, dome=4.0, lip=None,
-                 nub=(3.2, 2.4, 77.8, 76.0), ring=GREY, lens=LENS_GREY),
+                 nub=(3.2, 2.4, 77.8, 76.0), ring=LIGHT_GREY, lens=LENS_GREY),
 }
 EYE_BACK = 54.0           # floor of the eye sockets, 6 mm behind the face panel
 RING_FRONT = 72.0
@@ -441,11 +451,20 @@ def antenna(side):
     yc = side * ANTENNA_Y
     start = V(s(bx), s(yc), s(bz)) - dirv * s(ANTENNA_SOCKET)
     rod = Part.makeCylinder(min(s(ANTENNA_D / 2), ROD_HOLE / 2 - 0.1), s(L + ANTENNA_SOCKET), start, dirv)
+    tip = Part.makeCone(s(ANTENNA_D / 2), 0.2, s(3), V(s(tx), s(yc), s(tz)), dirv)
+    return rod.fuse(tip).removeSplitter()
+
+
+def antenna_collar(side):
+    """Dark tapered collar where the antenna leaves the ear; slides over the rod."""
+    (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
+    L = math.hypot(tx - bx, tz - bz)
+    dirv = V((tx - bx) / L, 0, (tz - bz) / L)
     (ex, ez), _ = antenna_exit()
     r0, r1, length = ANTENNA_COLLAR
-    collar = Part.makeCone(s(r0), s(r1), s(length), V(s(ex), s(yc), s(ez)), dirv)
-    tip = Part.makeCone(s(ANTENNA_D / 2), 0.2, s(3), V(s(tx), s(yc), s(tz)), dirv)
-    return rod.fuse([collar, tip]).removeSplitter()
+    base = V(s(ex), s(side * ANTENNA_Y), s(ez))
+    collar = Part.makeCone(s(r0), s(r1), s(length), base, dirv)
+    return collar.cut(Part.makeCylinder(ROD_HOLE / 2, s(length + 2), base - dirv * s(1), dirv))
 
 
 # ---------------------------------------------------------------- body
@@ -789,18 +808,35 @@ def shin_plate(side):
     return p.cut(outer_slab(side, offset_poly(THIGH_XZ, 0.4), THIGH_Y[0] - 0.4, THIGH_Y[1] + 1))
 
 
+FOOT_SPLIT_X = 40.5    # the foot is dark behind this and light in front of it (and the fork)
+
+
 def foot(side):
-    """Foot plate with two slots, and the ankle fork that takes the shin's pin."""
+    """Whole foot: plate with two slots, and the ankle fork that takes the shin's pin."""
     y0, y1 = ys(side, FOOT_Y)
     f = prism_xz(FOOT_SIDE, y0, y1)
     for x0, x1 in FOOT_SLOTS["x"]:
         f = f.cut(box(x0, x1, *ys(side, FOOT_SLOTS["y"]), FOOT_SLOTS["floor"], 10))
+    f = f.fuse(foot_fork(side)).removeSplitter()
+    a, b = ys(side, (FORK_Y[0][0], FORK_Y[1][1]))
+    return f.cut(pin_hole_y(ANKLE[0], ANKLE[1], a, b))
+
+
+def foot_fork(side):
     fork = [prism_xz(FORK_XZ, *ys(side, pair)) for pair in FORK_Y]
     blk = FORK_BLOCK
     fork.append(box(*blk["x"], *ys(side, (FORK_Y[0][1] - 0.01, FORK_Y[1][0] + 0.01)), *blk["z"]))
-    f = f.fuse(fork).removeSplitter()
-    a, b = ys(side, (FORK_Y[0][0], FORK_Y[1][1]))
-    return f.cut(pin_hole_y(ANKLE[0], ANKLE[1], a, b))
+    return fork[0].fuse(fork[1:]).removeSplitter()
+
+
+def foot_parts(side):
+    """The foot split by colour: dark heel plate, light front with the ankle fork."""
+    whole = foot(side)
+    front_zone = box(FOOT_SPLIT_X, 80, -60, 60, -1, 30).fuse(foot_fork(side))
+    front = whole.common(front_zone)
+    # The heel stops a glue gap short of the front part.
+    heel = whole.cut([front_zone, box(FOOT_SPLIT_X - g(), FOOT_SPLIT_X, -60, 60, -1, 30)])
+    return heel, front
 
 
 # ---------------------------------------------------------------- stand
@@ -840,28 +876,30 @@ def parts():
         out.append((f"lens_{tag}", lens(e), e["lens"], f"{'右眼蓝色' if tag == 'right' else '左眼浅灰'}镜头"))
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
-            (f"ear_{tag}", ear_disc(side), WHITE, "耳盘外圈（细槽里涂红线）"),
-            (f"ear_centre_{tag}", ear_centre(side), GREY, "耳盘中心灰件"),
+            (f"ear_{tag}", ear_disc(side), WARM_WHITE, "耳盘外圈（细槽里涂红线）"),
+            (f"ear_centre_{tag}", ear_centre(side), MID_GREY, "耳盘中心灰件"),
             (f"antenna_{tag}", antenna(side), WHITE, "天线；可换 2 mm 黄铜棒"),
+            (f"antenna_collar_{tag}", antenna_collar(side), COLLAR_GREY, "天线根部的深灰锥形套"),
         ]
     out += [
         ("neck", neck(), WHITE, "斜向方颈，两端各插 8 mm"),
         ("torso", torso(), WHITE, "躯干；髋部 3 mm 通孔"),
         ("chest_plate", chest_plate(), GREY, "胸前灰板"),
-        ("chest_tab", chest_tab(), RED, "胸口上沿红色小块"),
+        ("chest_tab", chest_tab(), DARK_RED, "胸口上沿红色小块"),
     ]
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
-            (f"thigh_{tag}", thigh(side), WHITE, "大腿板"),
-            (f"thigh_channel_{tag}", thigh_channel_parts(side)[0], RED, "大腿槽上段的红色凸块"),
-            (f"thigh_channel_floor_{tag}", thigh_channel_parts(side)[1], DARK, "大腿槽底（深色），螺杆粘在上面"),
-            (f"thigh_channel_tip_{tag}", thigh_channel_parts(side)[2], DARK, "大腿槽顶端的深色小块"),
-            (f"thigh_rod_{tag}", thigh_rod(side), GREY, "大腿红槽里的螺杆"),
-            (f"thigh_piston_{tag}", thigh_piston(side), GREY, "大腿侧槽里的螺纹柱"),
-            (f"knee_cap_{tag}", knee_cap(side), GREY, "膝盖螺栓盖"),
-            (f"shin_{tag}", shin(side), WHITE, "小腿"),
-            (f"shin_plate_{tag}", shin_plate(side), RED, "小腿外侧红板，带两个凸耳"),
-            (f"foot_{tag}", foot(side), DARK, "脚"),
+            (f"thigh_{tag}", thigh(side), WARM_WHITE, "大腿板"),
+            (f"thigh_channel_{tag}", thigh_channel_parts(side)[0], DARK_RED, "大腿槽上段的红色凸块"),
+            (f"thigh_channel_floor_{tag}", thigh_channel_parts(side)[1], CHANNEL_BROWN, "大腿槽底（深棕），螺杆粘在上面"),
+            (f"thigh_channel_tip_{tag}", thigh_channel_parts(side)[2], CHANNEL_BROWN, "大腿槽顶端的深棕小块"),
+            (f"thigh_rod_{tag}", thigh_rod(side), MID_GREY, "大腿槽里的螺杆"),
+            (f"thigh_piston_{tag}", thigh_piston(side), MID_GREY, "大腿侧槽里的螺纹柱"),
+            (f"knee_cap_{tag}", knee_cap(side), MID_GREY, "膝盖螺栓盖"),
+            (f"shin_{tag}", shin(side), SHIN_GREY, "小腿"),
+            (f"shin_plate_{tag}", shin_plate(side), DARK_RED, "小腿外侧红板，带两个凸耳"),
+            (f"foot_heel_{tag}", foot_parts(side)[0], FOOT_DARK, "脚后半段（深色）"),
+            (f"foot_front_{tag}", foot_parts(side)[1], FOOT_LIGHT, "脚前半段和踝叉（浅色）"),
         ]
     out.append(("stand", stand(), DARK, "展示底座（可选）：重心离脚跟只有约 1 mm，建议把脚粘进底座的凹槽"))
     return out
