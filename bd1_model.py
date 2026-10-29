@@ -462,7 +462,7 @@ def neck():
 
 # ---------------------------------------------------------------- legs
 KNEE = (-18.3, 72.6)
-ANKLE = (38.5, 11.0)
+ANKLE = (39.3, 9.8)
 THIGH_Y = (26.8, 32.6)           # inner and outer face of the thigh plate
 SHIN_Y = (19.2, 25.9)
 SHIN_PLATE_Y = (28.6, 31.5)      # red shin plate face, and its two lugs
@@ -495,9 +495,14 @@ SHIN_PLATE_XZ = [(-10.5, 59.5), (-9.3, 59.0), (-8.2, 59.0), (-3.0, 64.0), (-1.5,
 SHIN_LUGS_XZ = [[(-13.0, 63.0), (-6.5, 69.5), (-2.0, 65.0), (-2.0, 64.0), (-8.5, 58.5)],
                 [(22.5, 21.5), (22.5, 23.0), (28.5, 28.5), (33.0, 24.0), (33.0, 23.0), (26.5, 17.5)]]
 FOOT_Y = (17.9, 27.2)
+# Foot plate side profile (x, z) and its two through-slots, measured from the reference.
+FOOT_SIDE = [(9.5, 0.0), (56.6, 0.0), (56.6, 3.1), (54.8, 4.1), (50.0, 5.2), (31.0, 5.3), (25.0, 4.1),
+             (20.0, 2.3), (17.5, 1.7), (13.0, 1.7), (11.5, 1.2), (9.5, 0.1)]
+FOOT_SLOTS = dict(x=((31.3, 36.5), (46.3, 48.9)), y=(19.6, 24.6))
+# Ankle fork: two side plates round the end of the shin, joined by a low cross block.
 FORK_Y = ((16.6, 19.0), (26.1, 28.2))
-FORK_R = 3.8
-FOOT_SIDE = [(6.0, 0.0), (58.0, 0.0), (58.0, 3.5), (52.0, 5.3), (30.0, 5.3), (12.0, 1.7), (6.0, 0.6)]
+FORK_XZ = [(36.5, 0.0), (46.0, 0.0), (46.0, 5.9), (41.2, 13.0), (39.8, 13.2), (36.5, 12.0)]
+FORK_BLOCK = dict(x=(37.5, 45.5), z=(0.0, 5.4))
 
 
 def ys(side, pair):
@@ -641,14 +646,15 @@ def shin_plate(side):
 
 
 def foot(side):
+    """Foot plate with two slots, and the ankle fork that takes the shin's pin."""
     y0, y1 = ys(side, FOOT_Y)
     f = prism_xz(FOOT_SIDE, y0, y1)
-    f = try_fillet(f, 0.6)
-    for pair in FORK_Y:
-        a, b = ys(side, pair)
-        fork = capsule_xz((ANKLE[0], FORK_R), FORK_R, ANKLE, FORK_R, a, b)
-        f = f.fuse(fork)
-    f = f.removeSplitter()
+    for x0, x1 in FOOT_SLOTS["x"]:
+        f = f.cut(box(x0, x1, *ys(side, FOOT_SLOTS["y"]), -1, 10))
+    fork = [prism_xz(FORK_XZ, *ys(side, pair)) for pair in FORK_Y]
+    blk = FORK_BLOCK
+    fork.append(box(*blk["x"], *ys(side, (FORK_Y[0][1] - 0.01, FORK_Y[1][0] + 0.01)), *blk["z"]))
+    f = f.fuse(fork).removeSplitter()
     a, b = ys(side, (FORK_Y[0][0], FORK_Y[1][1]))
     return f.cut(pin_hole_y(ANKLE[0], ANKLE[1], a, b))
 
