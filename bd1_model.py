@@ -327,11 +327,15 @@ def lens(e):
     return lens_solid
 
 
-def revolve_ear(profile, side):
-    """Solid of revolution of a (radius, distance) profile about the ear axis, on one side."""
-    pts = [V(s(EAR["x"] + r), s(side * yv), s(EAR["z"])) for r, yv in profile]
+def revolve_y(profile, cx, cz, side):
+    """Solid of revolution of a (radius, distance) profile about the Y-parallel axis through (cx, cz)."""
+    pts = [V(s(cx + r), s(side * yv), s(cz)) for r, yv in profile]
     face = Part.Face(Part.makePolygon(pts + [pts[0]]))
-    return face.revolve(V(s(EAR["x"]), 0, s(EAR["z"])), V(0, 1, 0), 360)
+    return face.revolve(V(s(cx), 0, s(cz)), V(0, 1, 0), 360)
+
+
+def revolve_ear(profile, side):
+    return revolve_y(profile, EAR["x"], EAR["z"], side)
 
 
 def ear_disc(side):
@@ -496,7 +500,12 @@ SHANK = dict(start=(-4.0, 95.5), end=(-0.5, 101.5), r=2.4, top=35.6)   # plain b
 SLOT_XZ = [(1.5, 87.0), (10.5, 104.0), (14.5, 102.0), (5.5, 85.0)]
 SLOT_DEPTH = 1.5
 PISTON = dict(start=(3.9, 87.3), end=(11.8, 102.0), r=1.7, top=33.2, cap_r=2.15, cap_top=33.8)
-KNEE_CAP = dict(r=9.6, rim_top=34.6, boss_r=5.5, boss_top=35.2, star_floor=33.6, sink=1.5)
+# Knee bolt as (radius, distance from the centre plane): bevelled base, ring, boss; a
+# six-point star socket (outer, inner radius, floor) in the boss; it sits in a pocket
+# that leaves a visible groove round it.
+KNEE_CAP = dict(profile=[(9.2, 32.6), (7.5, 34.6), (7.4, 34.79), (4.9, 34.79), (4.9, 35.16), (0.0, 35.16)],
+                star=(3.0, 2.3, 33.65), pocket_r=10.4, sink=1.5)
+THIGH_BEVEL = 1.25               # the outer face is this much smaller than the outline all round
 # Red shin plate and its two lugs, traced the same way.
 SHIN_PLATE_XZ = [(-10.5, 59.5), (-9.3, 59.0), (-8.2, 59.0), (-3.0, 64.0), (-1.5, 64.5), (31.0, 26.5),
                  (28.2, 28.0), (22.0, 22.0), (2.0, 45.0), (-1.0, 48.5), (-4.0, 52.0)]
@@ -539,13 +548,35 @@ def outer_slab(side, pts, y_from, y_to):
     return prism_xz(pts, *ys(side, (y_from, y_to)))
 
 
+def offset_matched(pts, d):
+    """offset_poly with the same vertex count, order and start as pts (for lofting), or None."""
+    out = offset_poly(pts, d)
+    if len(out) != len(pts):
+        return None
+    k = min(range(len(out)), key=lambda i: math.hypot(out[i][0] - pts[0][0], out[i][1] - pts[0][1]))
+    out = out[k:] + out[:k]
+    fwd = math.hypot(out[1][0] - pts[1][0], out[1][1] - pts[1][1])
+    back = math.hypot(out[-1][0] - pts[1][0], out[-1][1] - pts[1][1])
+    if fwd > back:
+        out = [out[0]] + out[1:][::-1]
+    return out
+
+
+def xz_wire(pts, y):
+    vs = [V(s(x), s(y), s(z)) for x, z in pts]
+    return Part.makePolygon(vs + [vs[0]])
+
+
 def thigh_solid(side):
-    t = outer_slab(side, THIGH_XZ, *THIGH_Y)
-    edges = [e for e in t.Edges if abs(e.BoundBox.YLength) < 1e-6 and abs(abs(e.BoundBox.Center.y) - s(THIGH_Y[1])) < 1e-6]
-    try:
-        return t.makeChamfer(s(1.5), edges)
-    except Exception:
-        return t
+    """Thigh plate: a thin full-outline base, then a steep bevel lofted up to the smaller outer face."""
+    y0, y1 = THIGH_Y
+    base_top = y0 + 0.1
+    face = offset_matched(THIGH_XZ, -THIGH_BEVEL)
+    base = outer_slab(side, THIGH_XZ, y0, base_top)
+    if face is None:
+        return base.fuse(outer_slab(side, THIGH_XZ, base_top - 0.01, y1))
+    loft = Part.makeLoft([xz_wire(THIGH_XZ, side * base_top), xz_wire(face, side * y1)], True, True)
+    return base.fuse(loft).removeSplitter()
 
 
 def thigh(side):
@@ -553,7 +584,8 @@ def thigh(side):
     insert_floor = CHANNEL_FLOOR - INLAY
     t = t.cut([outer_slab(side, CHANNEL_XZ, insert_floor, THIGH_Y[1] + 3),
                outer_slab(side, SLOT_XZ, THIGH_Y[1] - SLOT_DEPTH, THIGH_Y[1] + 3),
-               cyl_y(KNEE[0], KNEE[1], KNEE_CAP["r"], side * (THIGH_Y[1] - KNEE_CAP["sink"]), side * (THIGH_Y[1] + 3))])
+               cyl_y(KNEE[0], KNEE[1], KNEE_CAP["pocket_r"], side * (THIGH_Y[1] - KNEE_CAP["sink"]),
+                     side * (THIGH_Y[1] + 3))])
     y0, y1 = ys(side, THIGH_Y)
     for x, z in (HIP, KNEE):
         t = t.cut(pin_hole_y(x, z, y0, y1))
@@ -616,16 +648,18 @@ def thigh_piston(side):
 
 
 def knee_cap(side):
-    """Grey knee bolt: rim, raised boss and a six-point star recess, sunk into the thigh."""
+    """Grey knee bolt revolved from KNEE_CAP's profile, with a six-point star socket."""
     kc = KNEE_CAP
     y_in = THIGH_Y[1] - kc["sink"]
-    cap = cyl_y(KNEE[0], KNEE[1], kc["r"] - g(), side * y_in, side * kc["rim_top"])
-    cap = cap.fuse(cyl_y(KNEE[0], KNEE[1], kc["boss_r"], side * (kc["rim_top"] - 0.01), side * kc["boss_top"]))
-    star = Part.makePolygon([V(s(KNEE[0] + (3.2 if i % 2 == 0 else 1.7) * math.cos(i * math.pi / 6)),
-                               s(side * kc["star_floor"]),
-                               s(KNEE[1] + (3.2 if i % 2 == 0 else 1.7) * math.sin(i * math.pi / 6)))
+    profile = [(0.0, y_in), (kc["profile"][0][0], y_in)] + kc["profile"]
+    cap = revolve_y(profile, KNEE[0], KNEE[1], side)
+    r_out, r_in, floor = kc["star"]
+    top = kc["profile"][-1][1]
+    star = Part.makePolygon([V(s(KNEE[0] + (r_out if i % 2 == 0 else r_in) * math.cos(i * math.pi / 6)),
+                               s(side * floor),
+                               s(KNEE[1] + (r_out if i % 2 == 0 else r_in) * math.sin(i * math.pi / 6)))
                              for i in range(13)])
-    cap = cap.cut(Part.Face(star).extrude(V(0, s(side * (kc["boss_top"] - kc["star_floor"] + 1)), 0)))
+    cap = cap.cut(Part.Face(star).extrude(V(0, s(side * (top - floor + 1)), 0)))
     peg = Part.makeCylinder(PIN_D / 2, s(4), V(s(KNEE[0]), s(side * y_in), s(KNEE[1])), V(0, -side, 0))
     return cap.fuse(peg).removeSplitter()
 
