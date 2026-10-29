@@ -16,6 +16,8 @@ import os
 import FreeCAD as App
 import Part
 
+__version__ = "0.1.0"
+
 V = App.Vector
 HEIGHT = float(os.environ.get("BD1_HEIGHT", "190"))
 K = HEIGHT / 190.0
