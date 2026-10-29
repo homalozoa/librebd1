@@ -1,4 +1,4 @@
-# BD-1 分模块打印模型（FreeCAD）
+# openbd1：BD-1 分模块打印模型（FreeCAD）
 
 外形按 `bd-1-droid-star-wars-jedi-fallen-order/` 里的参考网格测量建模。头、躯干、大腿、小腿、脖子的轮廓都是从参考网格上描下来的。面部罩壳、耳盘、胸背凹槽、大腿上的螺杆和螺纹柱、小腿红板凸耳、脚和踝叉这些细节，是从参考网格六个方向的表面高度图上量出来的。每个颜色区域都是单独零件，可以分色打印，也可以全部打成白色再分件上色。零件之间用 3 mm 销和胶连接。
 
@@ -62,7 +62,7 @@
 改完尺寸后重新生成：
 
 ```bash
-cd ~/bdx/bd1_print && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
+cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
 ```
 
 尺寸用 `BD1_HEIGHT` 控制，表示头顶高度（mm），默认 190。`BD1_HEIGHT=316` 接近真人大小。外形整体缩放，销孔、天线孔和胶缝保持实际尺寸不变，所以五金件不用换。
@@ -120,7 +120,7 @@ cd ~/bdx/bd1_print && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcm
 ## 与参考网格对比
 
 ```bash
-cd ~/bdx/bd1_print
+cd ~/bdx/openbd1
 /Applications/FreeCAD.app/Contents/Resources/bin/python -I glb_ref.py
 /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd render_views.py
 /Applications/FreeCAD.app/Contents/Resources/bin/python compare.py

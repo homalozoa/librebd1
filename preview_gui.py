@@ -3,7 +3,7 @@
 Run: /Applications/FreeCAD.app/Contents/Resources/bin/freecad preview_gui.py
 """
 import os, sys
-HERE = "/Users/homalozoax/bdx/bd1_print"
+HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 sys.path.insert(0, HERE)
 import FreeCAD as App
 import FreeCADGui as Gui
