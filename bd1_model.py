@@ -381,6 +381,13 @@ TORSO_XZ = [(-17.7, 86.3), (-17.8, 128.3), (-8.2, 131.9), (28.2, 131.9), (29.6, 
 TORSO_YZ = [(-26.7, 94.0), (-26.7, 122.0), (-25.3, 122.4), (-25.2, 128.3), (-17.1, 131.9), (17.1, 131.9),
             (25.2, 128.3), (25.3, 122.4), (26.7, 122.0), (26.7, 94.0), (25.3, 93.6), (25.0, 86.2),
             (-25.0, 86.2), (-25.3, 93.6)]
+# Plan outline: sides taper towards the front and step out round the hip.
+TORSO_XY = [(-17.8, -24.0), (-17.8, 24.0), (-11.3, 25.3), (-10.9, 26.7), (17.0, 26.7), (17.4, 25.3),
+            (35.4, 22.0), (36.3, 19.5), (36.3, -19.5), (35.4, -22.0), (17.4, -25.3), (17.0, -26.7),
+            (-10.9, -26.7), (-11.3, -25.3)]
+CHEST_DEPTH = 5.2                    # the grey chest plate sits this far behind the front face
+# Recessed back panel: outline at the back face and at its floor (y half-width, z0, z1, x).
+BACK_PANEL = dict(face=(21.5, 89.5, 125.0, -17.8), floor=(19.5, 92.0, 122.0, -13.9))
 NECK_AXIS = ((29.6, 121.9), (1.1, 158.8))
 NECK_T, NECK_W = 9.3, 9.4
 CHEST_PLATE = [(-13.0, 120.0), (13.0, 120.0), (11.0, 96.0), (-11.0, 96.0)]   # (y, z)
@@ -389,18 +396,33 @@ HIP = (5.0, 110.5)
 
 
 def torso_solid():
-    """Intersection of the traced side and front outlines."""
-    return prism_xz(TORSO_XZ, -30, 30).common(prism_yz(TORSO_YZ, -25, 45))
+    """Intersection of the traced side, front and plan outlines."""
+    return (prism_xz(TORSO_XZ, -30, 30).common(prism_yz(TORSO_YZ, -25, 45))
+            .common(prism_xy(TORSO_XY, 80, 140)))
+
+
+def chest_floor_x():
+    return TORSO["x1"] - CHEST_DEPTH - INLAY
 
 
 def chest_plate_region(gap):
-    pts = _inset(CHEST_PLATE, gap)
-    return prism_yz(pts, TORSO["x1"] - INLAY, TORSO["x1"] + 3)
+    return prism_yz(_inset(CHEST_PLATE, gap), chest_floor_x(), TORSO["x1"] + 3)
+
+
+def back_panel_recess():
+    """Recess in the torso's back with sloped edges, lofted from the face outline to the floor."""
+    def rect(hw, z0, z1, x):
+        pts = [V(s(x), s(-hw), s(z0)), V(s(x), s(hw), s(z0)), V(s(x), s(hw), s(z1)), V(s(x), s(-hw), s(z1))]
+        return Part.makePolygon(pts + [pts[0]])
+    hw, z0, z1, x = BACK_PANEL["face"]
+    loft = Part.makeLoft([rect(*BACK_PANEL["face"]), rect(*BACK_PANEL["floor"])], True)
+    return loft.fuse(box(x - 3, x + 0.01, -hw, hw, z0, z1))
 
 
 def torso():
     t = torso_solid()
-    t = t.cut([chest_plate_region(0), neck_body(g()), pin_hole_y(HIP[0], HIP[1], -TORSO["y"], TORSO["y"])])
+    t = t.cut([chest_plate_region(0), back_panel_recess(), neck_body(g()),
+               pin_hole_y(HIP[0], HIP[1], -TORSO["y"], TORSO["y"])])
     # Red tab: a pocket 1 mm deep into the top chamfer.
     return t.cut(_chamfer_pocket(0))
 
@@ -420,9 +442,11 @@ def _chamfer_pocket(gap):
 
 
 def chest_plate():
-    p = torso_solid().common(chest_plate_region(g()))
+    """Grey plate lining the floor of the chest recess, with two screw dimples."""
+    x0 = chest_floor_x()
+    p = prism_yz(_inset(CHEST_PLATE, g()), x0, x0 + INLAY)
     for y in (-6.0, 6.0):
-        p = p.cut(cyl_x(y, 113.0, 1.2, TORSO["x1"] - 0.5, TORSO["x1"] + 1))
+        p = p.cut(cyl_x(y, 113.0, 1.2, x0 + INLAY - 0.5, x0 + INLAY + 1))
     return p
 
 
