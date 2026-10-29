@@ -121,7 +121,7 @@ cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd 
 
 ## 网页
 
-`web/` 是一个 Vite 项目：用真实 STL 做成的 3D 模型，可以拖动旋转、拆开、摆到打印板上，每一步装配都能点开高亮对应零件。three.js 和字体都从 npm 装进来、打进产物，部署后不依赖任何 CDN。
+`web/` 是一个 Vite 项目：用真实 STL 做成的 3D 模型，可以拖动旋转、拆开、摆到打印板上，每一步装配都能点开高亮对应零件。three.js 和字体都从 npm 装进来、打进产物，部署后不依赖任何 CDN。页面支持中文和英文：默认跟随浏览器语言，右上角的按钮可以切换，选择会记在浏览器里。所有文案在 `web/src/i18n.js`，要改措辞或加语言只动这一个文件。
 
 ```bash
 cd web

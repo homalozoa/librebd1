@@ -9,7 +9,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23070b24'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23ffb27a' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23ffe14d'/%3E%3C/svg%3E">
 </head>
 <body>
-  <canvas id="gl" aria-label="BD-1 三维模型，可拖动旋转，点击零件查看信息"></canvas>
+  <canvas id="gl" data-i18n-aria="canvas" aria-label="BD-1 三维模型，可拖动旋转，点击零件查看信息"></canvas>
   <div class="grain" aria-hidden="true"></div>
   <div class="vignette" aria-hidden="true"></div>
 
@@ -20,13 +20,14 @@
   </div>
 
   <header class="top">
-    <a class="brand" href="#hero" aria-label="openbd1 回到顶部"><i></i>openbd1</a>
-    <nav aria-label="章节">
-      <a href="#colours" data-nav="colours">采样</a>
-      <a href="#explode" data-nav="explode">拆解</a>
-      <a href="#print" data-nav="print">制造</a>
-      <a href="#assemble" data-nav="assemble">组装</a>
+    <a class="brand" href="#hero" data-i18n-aria="brandLabel" aria-label="openbd1 回到顶部"><i></i>openbd1</a>
+    <nav data-i18n-aria="navLabel" aria-label="章节">
+      <a href="#colours" data-nav="colours" data-i18n="nav.colours">采样</a>
+      <a href="#explode" data-nav="explode" data-i18n="nav.explode">拆解</a>
+      <a href="#print" data-nav="print" data-i18n="nav.print">制造</a>
+      <a href="#assemble" data-nav="assemble" data-i18n="nav.assemble">组装</a>
       <a class="gh" href="https://github.com/homalozoa/openbd1" rel="noopener">GitHub ↗</a>
+      <button class="lang" id="lang" type="button">EN</button>
     </nav>
   </header>
 
@@ -37,27 +38,27 @@
 
   <aside class="tag" id="tag" aria-live="polite"></aside>
 
-  <main>
+  <main id="top">
     <section class="scene hero" id="hero" data-scene="hero">
       <div class="col">
-        <p class="kicker">已记录 54 件样本　/　同人作品，与官方无关</p>
+        <p class="kicker" data-i18n="hero.kicker">已记录 54 件样本　/　同人作品，与官方无关</p>
         <h1>openbd1</h1>
-        <p class="sub">醒来，旅行者。这里有一台被拆成 54 块的 BD-1。</p>
-        <p class="lede">把它们一块块打印出来，用 3 毫米的销子穿起来，它就能站住，膝盖也会弯。没人规定你一定要做完。不过大多数人会做完。</p>
+        <p class="sub" data-i18n="hero.sub">醒来，旅行者。这里有一台被拆成 54 块的 BD-1。</p>
+        <p class="lede" data-i18n="hero.lede">把它们一块块打印出来，用 3 毫米的销子穿起来，它就能站住，膝盖也会弯。没人规定你一定要做完。不过大多数人会做完。</p>
         <figure class="quote">
           <blockquote>Any sufficiently advanced technology is indistinguishable from magic.</blockquote>
           <figcaption>Arthur C. Clarke</figcaption>
         </figure>
       </div>
-      <div class="cue" aria-hidden="true"><span>向下滑动</span><i></i></div>
+      <div class="cue" aria-hidden="true"><span data-i18n="hero.cue">向下滑动</span><i></i></div>
     </section>
 
     <section class="scene" id="colours" data-scene="colours">
       <div class="col">
-        <p class="index">01　采样</p>
-        <h2>颜色</h2>
-        <p class="lead">每种颜色都是从参考模型的贴图上量出来的，取一个表面的平均值。真正的 BD-1 又旧又脏，划痕和污渍只能靠你自己用手涂。</p>
-        <p class="lead dim">点一个色块，同色的零件会亮起来。</p>
+        <p class="index" data-i18n="col.index">01　采样</p>
+        <h2 data-i18n="col.h2">颜色</h2>
+        <p class="lead" data-i18n="col.lead">每种颜色都是从参考模型的贴图上量出来的，取一个表面的平均值。真正的 BD-1 又旧又脏，划痕和污渍只能靠你自己用手涂。</p>
+        <p class="lead dim" data-i18n="col.dim">点一个色块，同色的零件会亮起来。</p>
         <div class="palette" id="palette"></div>
         <figure class="quote">
           <blockquote>Stuff your eyes with wonder.</blockquote>
@@ -68,30 +69,30 @@
 
     <section class="scene tall" id="explode" data-scene="explode">
       <div class="col sticky">
-        <p class="index">02　拆解</p>
-        <h2>里面是什么</h2>
-        <p class="lead">往下滑，它会一块块散开。零件大致沿着装进去的方向退出来，所以散开的样子，也是装回去的顺序。</p>
-        <div class="meter"><b id="exPct">000</b><span>% 已散开</span></div>
-        <p class="lead dim">拖动画面可以绕着它转。点任何一块，看它是什么。</p>
+        <p class="index" data-i18n="ex.index">02　拆解</p>
+        <h2 data-i18n="ex.h2">里面是什么</h2>
+        <p class="lead" data-i18n="ex.lead">往下滑，它会一块块散开。零件大致沿着装进去的方向退出来，所以散开的样子，也是装回去的顺序。</p>
+        <div class="meter"><b id="exPct">000</b><span data-i18n="ex.unit">% 已散开</span></div>
+        <p class="lead dim" data-i18n="ex.dim">拖动画面可以绕着它转。点任何一块，看它是什么。</p>
       </div>
     </section>
 
     <section class="scene tall" id="print" data-scene="print">
       <div class="col sticky">
-        <p class="index">03　制造</p>
-        <h2>打印</h2>
-        <p class="lead">三块 256 × 256 毫米的床，大小和拜博 X1、P1 一样。每个零件都转到了悬垂最少的方向。朝上的面不用担心，朝下的面可能要加支撑。</p>
+        <p class="index" data-i18n="pr.index">03　制造</p>
+        <h2 data-i18n="pr.h2">打印</h2>
+        <p class="lead" data-i18n="pr.lead">三块 256 × 256 毫米的床，大小和拜博 X1、P1 一样。每个零件都转到了悬垂最少的方向。朝上的面不用担心，朝下的面可能要加支撑。</p>
       </div>
       <div class="after">
         <div class="plates" id="plates"></div>
         <div class="notes">
-          <article><h3>喷嘴</h3><p>0.4 毫米，PLA 就够。小件和薄嵌件用 0.12 到 0.16 毫米的层高。头壳打 2 到 3 层壁，填充 10% 到 15%。</p></article>
-          <article><h3>先试一片</h3><p>头壳上每个凹槽都留了 0.2 毫米的胶缝。先打一块 1 毫米的嵌件放进去，松还是紧，取决于你的机器。</p></article>
-          <article><h3>翘边</h3><p>1 毫米厚的红片和灰片最容易翘。床温低一点，边缘加粘，或者几片挨在一起打。</p></article>
+          <article><h3 data-i18n="pr.n1t">喷嘴</h3><p data-i18n="pr.n1">0.4 毫米，PLA 就够。小件和薄嵌件用 0.12 到 0.16 毫米的层高。头壳打 2 到 3 层壁，填充 10% 到 15%。</p></article>
+          <article><h3 data-i18n="pr.n2t">先试一片</h3><p data-i18n="pr.n2">头壳上每个凹槽都留了 0.2 毫米的胶缝。先打一块 1 毫米的嵌件放进去，松还是紧，取决于你的机器。</p></article>
+          <article><h3 data-i18n="pr.n3t">翘边</h3><p data-i18n="pr.n3">1 毫米厚的红片和灰片最容易翘。床温低一点，边缘加粘，或者几片挨在一起打。</p></article>
         </div>
-        <h3 class="tt">可能要支撑的零件</h3>
-        <p class="fine">悬垂面积超过 150 平方毫米的列在这里。这是按几何算的估计，没有在切片软件里验证过，以你的切片预览为准。</p>
-        <table id="oh"><thead><tr><th>零件</th><th>高度 mm</th><th>悬垂 mm²</th></tr></thead><tbody></tbody></table>
+        <h3 class="tt" data-i18n="pr.tt">可能要支撑的零件</h3>
+        <p class="fine" data-i18n="pr.fine">悬垂面积超过 150 平方毫米的列在这里。这是按几何算的估计，没有在切片软件里验证过，以你的切片预览为准。</p>
+        <table id="oh"><thead><tr><th data-i18n="th.part">零件</th><th data-i18n="th.h">高度 mm</th><th data-i18n="th.o">悬垂 mm²</th></tr></thead><tbody></tbody></table>
         <figure class="quote">
           <blockquote>…it is the journey that matters, in the end.</blockquote>
           <figcaption>Ursula K. Le Guin, <cite>The Left Hand of Darkness</cite></figcaption>
@@ -101,9 +102,9 @@
 
     <section class="scene" id="assemble" data-scene="assemble">
       <div class="col">
-        <p class="index">04　组装</p>
-        <h2>装配</h2>
-        <p class="lead">一共九步。往下滑，模型会拆开，只亮起这一步用到的零件。关节只靠摩擦站住，别涂胶，不然它就成了一座雕像。</p>
+        <p class="index" data-i18n="as.index">04　组装</p>
+        <h2 data-i18n="as.h2">装配</h2>
+        <p class="lead" data-i18n="as.lead">一共九步。往下滑，模型会拆开，只亮起这一步用到的零件。关节只靠摩擦站住，别涂胶，不然它就成了一座雕像。</p>
       </div>
       <ol class="steps" id="steps"></ol>
     </section>
@@ -119,10 +120,10 @@
           <figcaption>Douglas Adams, <cite>The Hitchhiker's Guide to the Galaxy</cite></figcaption>
         </figure>
         <div class="legal">
-          <p>脚本用 MIT。模型文件（<code>BD1.FCStd</code>、STL、预览图）用 CC BY-NC-SA 4.0：可以改，可以分享，别拿去卖。</p>
-          <p>BD-1 属于 Lucasfilm 和 Disney，这是一份与他们无关的同人作品。测量时用的参考网格没有许可证，不在这个仓库里。</p>
-          <p>源码、打印指南和装配说明在 <a href="https://github.com/homalozoa/openbd1" rel="noopener">github.com/homalozoa/openbd1</a>。</p>
-          <p class="fine">页面用 three.js 绘制，字体是 Sora、Inter、Newsreader 和 IBM Plex Mono，全部打包在页面里。</p>
+          <p data-i18n-html="legal1"></p>
+          <p data-i18n-html="legal2"></p>
+          <p data-i18n-html="legal3"></p>
+          <p class="fine" data-i18n-html="legal4"></p>
         </div>
       </div>
     </section>

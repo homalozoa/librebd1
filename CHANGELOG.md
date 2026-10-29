@@ -10,7 +10,7 @@ All notable changes to this project are documented here. The format follows
 
 - `PRINTING.md`: parts list with print orientation, assembly steps, and nearest Bambu PLA Basic colours.
 - The 54 part STLs under `stl/`.
-- `web/`: a scroll-directed Vite + three.js showpiece: shader sky, ringed planet and stars, a glowing landing pad, soft shadows, reflections and bloom around the real part meshes; it disperses into an exploded view, flies onto the print beds and highlights each assembly step as you scroll. Includes sci-fi epigraphs and a GitHub Pages workflow. `pack_web.py` precomputes creased normals and packs the data, `render_print_layout.py` renders the print orientations.
+- `web/`: a scroll-directed Vite + three.js showpiece: shader sky, ringed planet and stars, a glowing landing pad, soft shadows, reflections and bloom around the real part meshes; it disperses into an exploded view, flies onto the print beds and highlights each assembly step as you scroll. Chinese and English (browser language by default, switchable, copy in `web/src/i18n.js`). Includes sci-fi epigraphs and a GitHub Pages workflow. `pack_web.py` precomputes creased normals and packs the data, `render_print_layout.py` renders the print orientations.
 - MIT license for the scripts, CC BY-NC-SA 4.0 for the model files, and a fan-work notice in the README.
 
 ### Removed

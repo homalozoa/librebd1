@@ -3,6 +3,7 @@ import "@fontsource-variable/sora";
 import "@fontsource-variable/newsreader/wght-italic.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "./style.css";
+import { STEP_RE, T, setLang, lang, applyStatic } from "./i18n.js";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -19,22 +20,11 @@ const lerp = (a, b, k) => a + (b - a) * k;
 /* ============================================================
    Copy and part metadata
    ============================================================ */
-const LABEL = {
-  head_shell: "头壳", head_top_band: "头顶带", head_light: "灯板", eye_ring: "眼筒", eye_band: "右眼红环", lens: "镜头",
-  ear: "耳盘外圈", ear_centre: "耳盘中心", antenna: "天线", antenna_collar: "天线套", neck: "脖子", torso: "躯干",
-  chest_plate: "胸板", chest_tab: "胸口红块", thigh: "大腿", thigh_channel: "槽上段凸块", thigh_channel_floor: "槽底",
-  thigh_channel_tip: "槽顶小块", thigh_rod: "螺杆", thigh_piston: "螺纹柱", knee_cap: "膝盖盖", shin: "小腿",
-  shin_plate: "小腿红板", foot_heel: "脚后半段", foot_front: "脚前半段", stand: "底座", paint: "头侧涂装嵌件",
-  hip_pin: "髋销 3×65", knee_pin: "膝销 3×8", ankle_pin: "踝销 3×12",
-};
 const baseOf = (n) => (/^paint_/.test(n) ? "paint" : n.replace(/_(left|right)$/, ""));
-const labelOf = (n) => (LABEL[baseOf(n)] || n) + (/_left$/.test(n) ? "（左）" : /_right$/.test(n) ? "（右）" : "");
+const labelOf = (n) => (T().parts[baseOf(n)] || n) + (/_left$/.test(n) ? T().left : /_right$/.test(n) ? T().right : "");
+const stripSide = (n) => labelOf(n).replace(T().left, "").replace(T().right, "");
 const sideOf = (n) => (/left/.test(n) ? 1 : /right/.test(n) ? -1 : 0);
-const COLOUR_NAME = {
-  "#C9CFB0": "米白", "#B2A696": "暖米白", "#80786B": "暖灰", "#999996": "灰", "#82827D": "中灰", "#B8BAB0": "浅灰",
-  "#B2B5B2": "镜头浅灰", "#C40A08": "亮红", "#7A2B26": "暗红", "#5E3330": "深红褐", "#638599": "钢蓝", "#52A624": "绿",
-  "#593D36": "深棕", "#595952": "深灰", "#B2B59E": "浅灰绿", "#424242": "炭灰", "#33363B": "黑灰",
-};
+const colourName = (hex) => T().colours[hex.toUpperCase()] || hex;
 
 /** Explode offsets in assembly coordinates (x forward, y to the left, z up, mm). */
 function explodeOf(n) {
@@ -54,17 +44,6 @@ function explodeOf(n) {
   return (t.find(([re]) => re.test(n)) || [0, [0, 0, 0]])[1];
 }
 
-const STEPS = [
-  ["试配", "先别涂胶。把所有嵌件放进凹槽试一遍，太紧就用锉刀磨一点，别硬压。", /^(paint_|head_top_band|head_light|eye_band|chest_)/, "嵌件"],
-  ["头部嵌件", "头顶带、两侧的涂装件和右眼红环嵌进头壳，灯板贴在头后凹槽的底上。右边和左边的图案不一样，装之前看一眼。", /^(head_shell|paint_|head_top_band|head_light|eye_band)/, "头壳 · 涂装 · 灯板"],
-  ["眼睛", "眼筒插进面板上 6 毫米深的眼窝，镜头放进眼筒里。右眼是钢蓝色的大镜头，左眼是浅灰色的。", /^(head_shell|eye_|lens_)/, "眼筒 · 镜头"],
-  ["耳朵与天线", "耳盘中心有一根 3 毫米的凸销，插进头侧，外圈套在外面粘牢。天线先穿过锥形套，再插进 2.3 毫米的斜孔。", /^(head_shell|ear_|antenna)/, "耳盘 · 天线 · 套"],
-  ["躯干与脖子", "胸板粘在胸口凹槽的底上，红块贴在正面和顶部斜面相交的地方。脖子两头各插进 8 毫米深的斜孔。", /^(head_shell|neck|torso|chest_)/, "脖子 · 躯干 · 胸板"],
-  ["大腿", "槽里先放深棕槽底、槽顶小块和红色凸块。螺杆粘在槽底，粗的一端对着六角凹坑下方。螺纹柱粘进侧槽，膝盖盖压进凹槽。", /^(thigh_|knee_cap)/, "大腿 · 螺杆 · 螺纹柱"],
-  ["小腿与脚", "红板嵌进 1 毫米深的凹槽，两头的凸耳要露在外面。脚的深色后半和浅色前半，在 x = 40.5 处对接粘牢。", /^(shin_|foot_)/, "小腿 · 红板 · 脚"],
-  ["关节销", "髋部一根 3×65 毫米的销，穿过左大腿、躯干和右大腿。每个膝盖一根 3×8，每个脚踝一根 3×12。只靠摩擦固定，所以不要涂胶。", /^(torso|thigh_(left|right)$|shin_(left|right)$|foot_|hip_pin|knee_pin|ankle_pin)/, "钢棒或 M3 螺丝"],
-  ["底座", "重心在脚跟后面，只靠两只脚站不住。把脚粘进底座 1.2 毫米深的凹槽，它才不会倒。", /^(stand|foot_)/, "底座 · 脚"],
-];
 
 /* ============================================================
    Renderer, post-processing, scene
@@ -345,13 +324,13 @@ let ready = false; // nothing is drawn behind the boot screen until the parts ar
 
 async function load() {
   const t0 = performance.now();
-  bootTo(0.08, "正在接入阿特拉斯");
+  bootTo(0.08, T().boot.connect);
   const [meta, buf] = await Promise.all([
     fetch("data/parts.json").then((r) => r.json()),
     fetch("data/bd1.bin").then((r) => r.arrayBuffer()),
   ]);
   DATA = meta;
-  bootTo(0.3, "解码 54 个零件");
+  bootTo(0.3, T().boot.decode);
   await frameWait();
   let tris = 0;
   const nPlates = meta.plates;
@@ -378,7 +357,7 @@ async function load() {
     it.pQuat.setFromRotationMatrix(m4);
     const t = new THREE.Vector3(plateX0(nPlates) + p.plate * (256 + GAP) + p.bed[0] - p.rotMin[0], -128 + p.bed[1] - p.rotMin[1], p.dz);
     it.pPos.copy(V(p.centre).applyMatrix4(m4)).add(t);
-    if (++done % 18 === 0) { bootTo(0.3 + 0.6 * (done / meta.parts.length), "打磨表面"); await frameWait(); }
+    if (++done % 18 === 0) { bootTo(0.3 + 0.6 * (done / meta.parts.length), T().boot.polish); await frameWait(); }
   }
   console.info(`openbd1: decoded in ${Math.round(performance.now() - t0)} ms`);
   // hardware: steel pins (not printed)
@@ -399,7 +378,7 @@ async function load() {
   ready = true;
   $$("#plates, #palette, #steps, #oh tbody").forEach((e) => { e.innerHTML = ""; });
   buildPage();
-  bootTo(1, "准备就绪");
+  bootTo(1, T().boot.ready);
   setTimeout(() => boot.el.classList.add("off"), 250);
   console.info(`openbd1: ${meta.parts.length} parts, ${tris} triangles, ready in ${Math.round(performance.now())} ms`);
 }
@@ -415,7 +394,6 @@ const S = {
   scene: "hero", sceneP: 0, step: -1, sel: null, hover: null, set: null, userSet: null, chip: null,
 };
 const SCENES = ["hero", "colours", "explode", "print", "assemble", "outro"];
-const SCENE_LABEL = { hero: "01 · 抵达", colours: "02 · 采样", explode: "03 · 拆解", print: "04 · 制造", assemble: "05 · 组装", outro: "06 · 完成" };
 const narrow = () => innerWidth <= 860;
 
 function printDist(w, h) {
@@ -464,7 +442,7 @@ function direct(w, h) {
   }
   if (sc === "assemble") {
     ex = S.step >= 0 ? 0.85 : 0.35; r = n ? 980 : 720; tg = [10, 0, 108]; el = 0.17; spin = 0.05; offX = side;
-    if (S.step >= 0) set = new Set(STEPS[S.step][2] ? items.filter((i) => STEPS[S.step][2].test(i.name)).map((i) => i.name) : []);
+    if (S.step >= 0) set = new Set(items.filter((i) => STEP_RE[S.step].test(i.name)).map((i) => i.name));
   }
   if (sc === "outro") { r = n ? 700 : 560; offX = 0; offY = n ? 0.2 : 0; el = 0.13; spin = 0.07; }
   S.exT = ex; S.prT = pr; S.spin = spin; S.offXT = offX; S.offYT = offY;
@@ -563,7 +541,7 @@ function frame(now) {
   composer.render();
   placeTag();
   if (frameN % 6 === 0) {
-    $("#roScene").textContent = SCENE_LABEL[S.scene];
+    $("#roScene").textContent = T().scenes[S.scene];
     $("#roCam").textContent = `AZ ${String(Math.round(((S.az * 57.2958) % 360 + 360) % 360)).padStart(3, "0")}°  EL ${String(Math.round(S.el * 57.2958)).padStart(2, "0")}°`;
     const pct = $("#exPct");
     if (pct) pct.textContent = String(Math.round(S.ex * 100)).padStart(3, "0");
@@ -621,12 +599,12 @@ function select(name) {
 
 function renderTag(name) {
   if (!name) { tagEl.innerHTML = ""; return; }
-  const it = byName.get(name), p = it.p;
-  const rows = [`<dt>颜色</dt><dd><span class="sw" style="background:${it.hex}"></span>${COLOUR_NAME[it.hex.toUpperCase()] || it.hex}</dd>`];
-  if (p) rows.push(`<dt>打印板</dt><dd>${p.plate + 1}</dd>`, `<dt>打印高度</dt><dd>${p.height} mm</dd>`,
-    `<dt>悬垂</dt><dd class="${p.overhang > 150 ? "warn" : ""}">${Math.round(p.overhang)} mm² · ${p.overhang > 150 ? "要支撑" : "不用支撑"}</dd>`);
-  else rows.push(`<dt>类型</dt><dd>硬件，不打印</dd>`);
-  tagEl.innerHTML = `<i class="dot"></i><i class="lead-line"></i><div class="card"><div class="k">发现物</div><h4>${labelOf(name)}</h4><div class="id">${name}</div><dl>${rows.join("")}</dl><button class="close" id="tagClose">收起 ✕</button></div>`;
+  const it = byName.get(name), p = it.p, L = T().tag;
+  const rows = [`<dt>${L.colour}</dt><dd><span class="sw" style="background:${it.hex}"></span>${colourName(it.hex)}</dd>`];
+  if (p) rows.push(`<dt>${L.bed}</dt><dd>${p.plate + 1}</dd>`, `<dt>${L.height}</dt><dd>${p.height} mm</dd>`,
+    `<dt>${L.overhang}</dt><dd class="${p.overhang > 150 ? "warn" : ""}">${Math.round(p.overhang)} mm² · ${p.overhang > 150 ? L.support : L.none}</dd>`);
+  else rows.push(`<dt>${L.type}</dt><dd>${L.hardware}</dd>`);
+  tagEl.innerHTML = `<i class="dot"></i><i class="lead-line"></i><div class="card"><div class="k">${L.kicker}</div><h4>${labelOf(name)}</h4><div class="id">${name}</div><dl>${rows.join("")}</dl><button class="close" id="tagClose">${L.close}</button></div>`;
   $("#tagClose").onclick = () => select(null);
 }
 
@@ -642,10 +620,10 @@ function buildPage() {
   }
   const pal = $("#palette");
   [...groups.entries()].sort((a, b) => b[1].length - a[1].length).forEach(([hex, names]) => {
-    const bases = [...new Set(names.map((n) => labelOf(n).replace(/（[左右]）/, "")))];
+    const bases = [...new Set(names.map(stripSide))];
     const b = document.createElement("button");
     b.className = "chip";
-    b.innerHTML = `<i style="background:${hex}"></i><span><b>${COLOUR_NAME[hex] || hex}</b><small>${hex} · ${names.length} 件 · ${bases.slice(0, 2).join("、")}${bases.length > 2 ? "…" : ""}</small></span>`;
+    b.innerHTML = `<i style="background:${hex}"></i><span><b>${colourName(hex)}</b><small>${hex} · ${T().pcs(names.length)} · ${bases.slice(0, 2).join(lang() === "zh" ? "、" : ", ")}${bases.length > 2 ? "…" : ""}</small></span>`;
     b.onclick = () => {
       const on = S.chip === hex;
       $$(".chip.on").forEach((c) => c.classList.remove("on"));
@@ -662,7 +640,7 @@ function buildPage() {
     box.className = "plate";
     const rects = DATA.parts.filter((p) => p.plate === i).map((p) =>
       `<rect data-n="${p.name}" x="${p.bed[0]}" y="${256 - p.bed[1] - p.foot[1]}" width="${p.foot[0]}" height="${p.foot[1]}" rx="1.2" fill="${p.colour}"><title>${labelOf(p.name)}</title></rect>`).join("");
-    box.innerHTML = `<h3>PLATE ${i + 1} · 256 × 256</h3><svg viewBox="0 0 256 256" role="img" aria-label="打印板 ${i + 1} 排版">${rects}</svg>`;
+    box.innerHTML = `<h3>PLATE ${i + 1} · 256 × 256</h3><svg viewBox="0 0 256 256" role="img" aria-label="${T().plate(i + 1)}">${rects}</svg>`;
     box.querySelectorAll("rect").forEach((r) => { r.onclick = () => { select(r.dataset.n); document.getElementById("print").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }; });
     pl.appendChild(box);
   }
@@ -677,7 +655,7 @@ function buildPage() {
   });
 
   const ol = $("#steps");
-  STEPS.forEach(([title, text, , tag], i) => {
+  T().steps.forEach(([title, text, tag]) => {
     const li = document.createElement("li");
     li.className = "step";
     li.innerHTML = `<h3>${title}</h3><p>${text}</p><em>${tag}</em>`;
@@ -686,6 +664,22 @@ function buildPage() {
   });
 }
 
+function rebuild() {
+  $$("#plates, #palette, #steps, #oh tbody").forEach((e) => { e.innerHTML = ""; });
+  buildPage();
+  renderTag(S.sel);
+  S.step = -2; // force the active-step class to be re-applied on the next frame
+}
+
+$("#lang").addEventListener("click", () => {
+  setLang(lang() === "zh" ? "en" : "zh");
+  applyStatic();
+  if (ready) rebuild();
+  else boot.text.textContent = T().boot.connect;
+});
+
+applyStatic();
+boot.text.textContent = T().boot.connect;
 resize();
 requestAnimationFrame(frame);
-load().catch((err) => { console.error(err); boot.text.textContent = "信号丢失：" + err; });
+load().catch((err) => { console.error(err); boot.text.textContent = T().boot.lost + err; });
