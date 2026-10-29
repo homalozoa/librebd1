@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `PRINTING.md`: parts list with print orientation, assembly steps, and nearest Bambu PLA Basic colours.
+- The 54 part STLs under `stl/`.
 - MIT license for the scripts, CC BY-NC-SA 4.0 for the model files, and a fan-work notice in the README.
 
 ### Removed

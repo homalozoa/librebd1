@@ -67,6 +67,8 @@ cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd 
 
 尺寸用 `BD1_HEIGHT` 控制，表示头顶高度（mm），默认 190。`BD1_HEIGHT=316` 接近真人大小。外形整体缩放，销孔、天线孔和胶缝保持实际尺寸不变，所以五金件不用换。
 
+打印和装配的完整步骤、零件清单和线材对照见 [PRINTING.md](PRINTING.md)。
+
 ## 零件与颜色
 
 颜色取自参考贴图，是每个表面上的面积加权平均值。
