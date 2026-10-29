@@ -105,13 +105,13 @@ def along(c1, c2, t):
 
 # ---------------------------------------------------------------- head
 HEAD_Y = 55.5
-HEAD_Z0, HEAD_Z1 = 151.9, 189.5   # top face height where the front and side outlines agree
+HEAD_Z0, HEAD_Z1 = 151.6, 189.5   # underside, and top face height where the outlines agree
 HEAD_SIDE = [(-60.7, 152.4), (52.0, HEAD_Z0), (52.0, HEAD_Z1), (-47.4, HEAD_Z1)]   # back slope from [0] to [3]
 # Head outlines traced from the reference mesh (ref_profiles.py), chin tabs left out.
 HEAD_XZ = [(-60.7, 152.4), (-48.0, 188.2), (-46.8, 189.9), (51.3, 190.0), (52.0, 189.5), (52.2, 182.8),
-           (75.3, 182.8), (76.7, 182.3), (69.9, 152.1), (34.3, 152.0)]
+           (75.3, 182.8), (76.7, 182.3), (69.9, 152.1), (34.3, 151.6)]
 HEAD_YZ = [(-55.5, 156.7), (-55.5, 185.2), (-54.2, 188.2), (-51.5, 189.5), (51.5, 189.5), (54.2, 188.2),
-           (55.5, 185.2), (55.5, 156.7), (52.9, 152.2), (48.3, 151.9), (-48.3, 151.9), (-52.9, 152.2)]
+           (55.5, 185.2), (55.5, 156.7), (52.9, 152.2), (48.3, 151.6), (-48.3, 151.6), (-52.9, 152.2)]
 HEAD_XY = [(-60.4, -52.2), (-60.7, 52.2), (-59.1, 55.5), (52.0, 55.5), (52.2, 53.8), (69.7, 53.8),
            (75.3, 47.3), (76.8, 40.2), (76.8, -40.2), (75.3, -47.3), (69.7, -53.8), (52.2, -53.8),
            (52.0, -55.5), (-59.1, -55.5)]
@@ -189,17 +189,21 @@ EAR_RING = [(11.0, 55.5), (11.0, 62.85), (12.1, 62.85), (12.1, 62.45), (12.7, 62
             (14.2, 62.85), (16.4, 56.3), (16.4, 55.5)]   # with a 0.6 mm groove for the red line
 EAR_CENTRE = [(0.0, 55.5), (0.0, 59.8), (3.2, 59.8), (3.3, 61.6), (5.8, 61.9), (5.9, 55.9), (7.7, 55.9),
               (10.8, 62.4), (10.8, 55.5)]
-ANTENNA_BASE = (-37.0, 183.0)
-ANTENNA_TIP = (-77.8, 242.6)
+# Antenna line fitted to the reference: it lies in the plane |y| = ANTENNA_Y and leaves
+# the ear through a tapered collar (radius at the ear, radius at the end, length).
+ANTENNA_BASE = (-36.09, 183.0)
+ANTENNA_TIP = (-77.58, 242.79)
+ANTENNA_Y = 59.48
 ANTENNA_D = 2.1
+ANTENNA_COLLAR = (1.96, 1.61, 7.0)
 ANTENNA_SOCKET = 3.0      # how far the antenna goes in behind ANTENNA_BASE (stays clear of the ear centre)
 # Green light panel recessed into the sloped back face, measured along the slope from
 # the bottom edge; its face sits LIGHT_RECESS below the surface.
 LIGHT_RECESS = 3.0
 # Outline at the surface and at the floor (along-slope range, half width): the bottom
 # edge is sharp, the top and side edges slope in over about 4 mm.
-LIGHT_FACE = dict(along=(3.4, 36.7), y=52.3)
-LIGHT_FLOOR = dict(along=(4.5, 32.5), y=47.0)
+LIGHT_FACE = dict(along=(3.4, 36.7), y=52.0)
+LIGHT_FLOOR = dict(along=(4.5, 32.5), y=48.5)
 
 
 def _slope_frame():
@@ -391,7 +395,7 @@ def ear_disc(side):
     (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
     L = math.hypot(tx - bx, tz - bz)
     dirv = V((tx - bx) / L, 0, (tz - bz) / L)
-    yc = side * (EAR["y0"] + EAR["y1"]) / 2
+    yc = side * ANTENNA_Y
     start = V(s(bx), s(yc), s(bz)) - dirv * s(ANTENNA_SOCKET + 0.5)
     return d.cut(Part.makeCylinder(ROD_HOLE / 2, s(ANTENNA_SOCKET + 6), start, dirv)).removeSplitter()
 
@@ -419,11 +423,12 @@ def antenna(side):
     (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
     L = math.hypot(tx - bx, tz - bz)
     dirv = V((tx - bx) / L, 0, (tz - bz) / L)
-    yc = side * (EAR["y0"] + EAR["y1"]) / 2
+    yc = side * ANTENNA_Y
     start = V(s(bx), s(yc), s(bz)) - dirv * s(ANTENNA_SOCKET)
     rod = Part.makeCylinder(min(s(ANTENNA_D / 2), ROD_HOLE / 2 - 0.1), s(L + ANTENNA_SOCKET), start, dirv)
     (ex, ez), _ = antenna_exit()
-    collar = Part.makeCylinder(s(2.4), s(5), V(s(ex), s(yc), s(ez)), dirv)
+    r0, r1, length = ANTENNA_COLLAR
+    collar = Part.makeCone(s(r0), s(r1), s(length), V(s(ex), s(yc), s(ez)), dirv)
     tip = Part.makeCone(s(ANTENNA_D / 2), 0.2, s(3), V(s(tx), s(yc), s(tz)), dirv)
     return rod.fuse([collar, tip]).removeSplitter()
 
@@ -451,7 +456,7 @@ HIP_RECESS_LIP = (0.75, 26.65)      # raised lip round the recess: width, top
 TORSO_CORNER_BEVEL = dict(a=154.741, b=-0.3602, c=-0.9695, x0=19.0)
 CHEST_DEPTH = 5.2                    # the grey chest plate sits this far behind the front face
 # Recessed back panel: outline at the back face and at its floor (y half-width, z0, z1, x).
-BACK_PANEL = dict(face=(21.5, 89.5, 125.0, -17.8), floor=(19.5, 92.0, 122.0, -13.9))
+BACK_PANEL = dict(face=(22.5, 89.5, 125.0, -17.8), floor=(20.5, 92.0, 122.0, -13.9))
 NECK_AXIS = ((29.6, 121.9), (1.1, 158.8))
 NECK_T, NECK_W = 9.3, 9.4
 CHEST_PLATE = [(-13.5, 120.5), (13.5, 120.5), (13.5, 105.0), (11.0, 103.0), (11.0, 94.8), (-11.0, 94.8),
