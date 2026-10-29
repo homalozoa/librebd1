@@ -140,9 +140,35 @@ TOP_NOTCH = [(19.0, 184.3), (25.5, 190.5)]
 TOP_NOTCH_X = 42.0
 PANEL_LINES_X = (-4.5, 34.7, 42.2)
 TOP_BAND_X = (-4.0, 34.2)
-SIDE_PANEL = [(-2.0, 180.0), (32.5, 180.0), (32.5, 159.5), (16.5, 159.5)]
-RED_STRIPE = [(-44.0, 182.8), (51.0, 182.8), (51.0, 187.8), (-45.8, 187.8)]
-SNOUT_RED = dict(x=(53.5, 65.5), z=(156.5, 180.0))   # red patch on the curved hood walls
+# Paint regions on the head's sides, traced from the reference texture. BD-1's two sides
+# are painted differently. Each entry: (name, colour, surface, outline (x, z)), where
+# surface is "side" (the flat side face), "edge" (the bevel along the top edge) or
+# "hood" (the curved hood wall). Earlier entries win where outlines touch.
+PAINT = {
+    -1: [  # BD-1's right side
+        ("panel_dot", RED, "side", [(9.9, 172.9), (14.4, 172.9), (14.4, 174.8), (9.9, 175.7)]),
+        ("panel", GREY, "side", [(1.5, 179.5), (26.1, 179.5), (27.7, 178.6), (27.7, 159.5), (22.7, 158.6),
+                                 (17.6, 158.6), (16.0, 159.5), (8.2, 167.3), (1.5, 171.9)]),
+        ("stripe", RED, "side", [(-49.8, 180.5), (-46.2, 188.2), (-15.1, 188.2), (-9.7, 185.2), (22.7, 186.0),
+                                 (30.9, 185.1), (33.0, 185.9), (33.7, 183.3), (33.7, 181.4), (-4.3, 181.4),
+                                 (-4.8, 182.3), (-10.5, 182.4), (-16.6, 177.6), (-18.6, 179.5), (-49.5, 178.6)]),
+        ("front_block", RED, "side", [(35.1, 181.4), (35.4, 185.1), (50.6, 185.2), (51.0, 181.4), (42.8, 181.4),
+                                      (41.8, 184.3), (41.3, 181.4)]),
+        ("back_strip", RED, "side", [(-48.6, 157.6), (-46.4, 159.5), (-33.8, 159.5), (-35.7, 158.0), (-34.0, 156.7),
+                                     (-47.0, 156.7)]),
+        ("top_edge", GREY, "edge", [(-4.4, 186.3), (41.6, 186.3), (41.6, 188.4), (-4.4, 188.4)]),
+        ("snout", RED, "hood", [(52.9, 176.6), (54.0, 180.7), (62.3, 180.7), (63.8, 177.5), (65.0, 177.2),
+                                (63.9, 155.8), (53.4, 155.8)]),
+    ],
+    1: [  # BD-1's left side
+        ("stripe", RED, "side", [(-35.4, 187.6), (-13.7, 188.2), (-11.1, 186.8), (-7.5, 181.3), (33.1, 181.4),
+                                 (33.7, 182.3), (40.9, 182.4), (42.0, 180.5), (41.3, 178.6), (35.8, 178.6),
+                                 (35.0, 179.5), (34.4, 178.6), (-20.9, 178.6), (-21.0, 180.4), (-22.4, 181.4),
+                                 (-21.0, 182.2), (-22.5, 184.2), (-34.6, 184.3), (-34.3, 186.7)]),
+        ("top_edge", GREY, "edge", [(-4.4, 182.4), (42.0, 183.2), (42.5, 187.6), (42.5, 188.4), (-4.4, 188.4)]),
+    ],
+}
+PAINT_FACE_Y = {"side": HEAD_Y, "edge": 54.8}   # face the pocket is measured from
 # BD-1's right eye is the larger one with a blue lens and a set-back lip (width, depth)
 # inside its barrel; the left lens carries a small raised ring round a shallow cup
 # (outer radius, inner radius, top, cup floor). Lens dome heights from the reference.
@@ -158,7 +184,8 @@ EAR = dict(x=-28.3, z=171.0, r=16.4, y0=HEAD_Y, y1=62.85)
 # Ear relief as (radius, distance from the centre plane), fitted round the rim's centre:
 # an outer ring with a flat rim and bevelled edge, and the grey centre that sits inside
 # it against the head (red-painted cone, deep annular groove, hub, dimple).
-EAR_RING = [(11.0, 55.5), (11.0, 62.85), (14.2, 62.85), (16.4, 56.3), (16.4, 55.5)]
+EAR_RING = [(11.0, 55.5), (11.0, 62.85), (12.1, 62.85), (12.1, 62.45), (12.7, 62.45), (12.7, 62.85),
+            (14.2, 62.85), (16.4, 56.3), (16.4, 55.5)]   # with a 0.6 mm groove for the red line
 EAR_CENTRE = [(0.0, 55.5), (0.0, 59.8), (3.2, 59.8), (3.3, 61.6), (5.8, 61.9), (5.9, 55.9), (7.7, 55.9),
               (10.8, 62.4), (10.8, 55.5)]
 ANTENNA_BASE = (-37.0, 183.0)
@@ -204,21 +231,8 @@ def top_band_region(gap):
     return box(x0 + gap, x1 - gap, -HEAD_Y + 1.5 + gap, HEAD_Y - 1.5 - gap, HEAD_Z1 - INLAY, HEAD_Z1 + 3)
 
 
-def _inset(poly, gap):
-    """Shrink a convex polygon by moving each vertex towards the centroid (good enough for gaps)."""
-    if gap == 0:
-        return poly
-    cx = sum(p[0] for p in poly) / len(poly)
-    cz = sum(p[1] for p in poly) / len(poly)
-    out = []
-    for x, z in poly:
-        d = math.hypot(x - cx, z - cz)
-        out.append((x - (x - cx) / d * gap * 1.4, z - (z - cz) / d * gap * 1.4))
-    return out
-
-
 def side_region(poly, side, gap, y_face=HEAD_Y):
-    p = _inset(poly, gap)
+    p = offset_poly(poly, -gap)
     y_in = side * (y_face - INLAY)
     y_out = side * (y_face + 3)
     return prism_xz(p, min(y_in, y_out), max(y_in, y_out))
@@ -274,15 +288,32 @@ def head_solid():
     return h.cut([cavity, below, arch, notch]).removeSplitter()
 
 
-def snout_red_region(side, gap):
-    """1 mm skin of the curved hood wall inside the SNOUT_RED window, on one side."""
+def hood_region(poly, side, gap):
+    """1 mm skin of the curved hood wall inside an (x, z) outline, on one side."""
     from shapely.geometry import Polygon
     outer = closed_below(HOOD_OUTER, 140.0)
     inner = Polygon(outer).buffer(-INLAY, join_style=2)
     skin = prism_yz(outer, 40, 90).cut(prism_yz(list(inner.exterior.coords)[:-1], 39, 91))
-    (x0, x1), (z0, z1) = SNOUT_RED["x"], SNOUT_RED["z"]
-    window = box(x0 + gap, x1 - gap, *ys(side, (0.0, 60.0)), z0 + gap, z1 - gap)
-    return skin.common(window)
+    return skin.common(prism_xz(offset_poly(poly, -gap), *ys(side, (0.0, 60.0))))
+
+
+def paint_region(surface, poly, side, gap):
+    if surface == "hood":
+        return hood_region(poly, side, gap)
+    return side_region(poly, side, gap, PAINT_FACE_Y[surface])
+
+
+def paint_inlays(side):
+    """(name, colour, solid) for each painted inlay on one side; later ones avoid earlier ones."""
+    hs = head_solid()
+    out, taken = [], []
+    for name, colour, surface, poly in PAINT[side]:
+        part = hs.common(paint_region(surface, poly, side, g()))
+        if taken:
+            part = part.cut(taken)
+        taken.append(paint_region(surface, poly, side, 0))
+        out.append((name, colour, part))
+    return out
 
 
 def head_shell():
@@ -294,8 +325,7 @@ def head_shell():
         h = h.cut(ring)
     cuts = [top_band_region(0), light_pocket()]
     for side in (1, -1):
-        cuts += [side_region(SIDE_PANEL, side, 0), side_region(RED_STRIPE, side, 0),
-                 snout_red_region(side, 0)]
+        cuts += [paint_region(surface, poly, side, 0) for _, _, surface, poly in PAINT[side]]
         # 3 mm peg hole for the ear disc.
         cuts.append(pin_hole_y(EAR["x"], EAR["z"], side * (HEAD_Y - 8), side * HEAD_Y))
     for e in EYES.values():
@@ -605,7 +635,7 @@ def thigh(side):
 
 
 def thigh_channel(side):
-    """Red insert lining the thigh channel: low floor round the rod, nearly flush above, with a hex recess."""
+    """Insert lining the thigh channel: low floor round the rod, nearly flush patch above, with a hex recess."""
     inner = offset_poly(CHANNEL_XZ, -g())
     floor = outer_slab(side, inner, CHANNEL_FLOOR - INLAY, CHANNEL_FLOOR)
     face = CHANNEL_RAISED_FACE
@@ -620,6 +650,16 @@ def thigh_channel(side):
     shank = LineString([SHANK["start"], SHANK["end"]]).buffer(SHANK["r"] + g())
     notch = outer_slab(side, list(shank.exterior.coords)[:-1], CHANNEL_FLOOR, face + 1)
     return floor.fuse(upper).removeSplitter().cut([socket, notch])
+
+
+def thigh_channel_parts(side):
+    """The channel insert split by colour: red raised patch, dark floor round the rod, dark top tip."""
+    whole = thigh_channel(side)
+    tall = (CHANNEL_FLOOR - INLAY - 1, CHANNEL_RAISED_FACE + 1)
+    red = whole.common(outer_slab(side, offset_poly(CHANNEL_RAISED_XZ, -g() / 2), *tall))
+    dark = whole.cut(outer_slab(side, offset_poly(CHANNEL_RAISED_XZ, g() / 2), *tall))
+    floor, tip = sorted(dark.Solids, key=lambda so: -so.Volume)[:2]
+    return red, floor, tip
 
 
 def _threaded(start, end, r, y_axis, side, ridges, ridge=0.35):
@@ -742,11 +782,8 @@ def parts():
         ("head_light", light_panel(), GREEN, "头后斜面凹槽里的绿色灯板"),
     ]
     for side, tag in ((1, "left"), (-1, "right")):
-        out += [
-            (f"head_side_panel_{tag}", hs.common(side_region(SIDE_PANEL, side, g())), GREY, "头侧灰板"),
-            (f"head_red_stripe_{tag}", hs.common(side_region(RED_STRIPE, side, g())), RED, "头侧上沿红条"),
-            (f"snout_red_{tag}", hs.common(snout_red_region(side, g())), RED, "罩壳两侧弧面上的红块"),
-        ]
+        out += [(f"paint_{tag}_{name}", solid, colour, "头侧涂装嵌件（两侧图案不同）")
+                for name, colour, solid in paint_inlays(side)]
     for tag, e in EYES.items():
         out += [
             (f"eye_ring_{tag}", eye_ring(e), e["ring"], f"{'右' if tag == 'right' else '左'}眼外圈"),
@@ -754,8 +791,8 @@ def parts():
         ]
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
-            (f"ear_{tag}", ear_disc(side), WHITE, "耳盘外圈"),
-            (f"ear_centre_{tag}", ear_centre(side), GREY, "耳盘中心灰件（锥面涂红圈）"),
+            (f"ear_{tag}", ear_disc(side), WHITE, "耳盘外圈（细槽里涂红线）"),
+            (f"ear_centre_{tag}", ear_centre(side), GREY, "耳盘中心灰件"),
             (f"antenna_{tag}", antenna(side), WHITE, "天线；可换 2 mm 黄铜棒"),
         ]
     out += [
@@ -767,7 +804,9 @@ def parts():
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
             (f"thigh_{tag}", thigh(side), WHITE, "大腿板"),
-            (f"thigh_channel_{tag}", thigh_channel(side), RED, "大腿红槽底板"),
+            (f"thigh_channel_{tag}", thigh_channel_parts(side)[0], RED, "大腿槽上段的红色凸块"),
+            (f"thigh_channel_floor_{tag}", thigh_channel_parts(side)[1], DARK, "大腿槽底（深色），螺杆粘在上面"),
+            (f"thigh_channel_tip_{tag}", thigh_channel_parts(side)[2], DARK, "大腿槽顶端的深色小块"),
             (f"thigh_rod_{tag}", thigh_rod(side), GREY, "大腿红槽里的螺杆"),
             (f"thigh_piston_{tag}", thigh_piston(side), GREY, "大腿侧槽里的螺纹柱"),
             (f"knee_cap_{tag}", knee_cap(side), GREY, "膝盖螺栓盖"),
