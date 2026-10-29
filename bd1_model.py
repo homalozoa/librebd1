@@ -414,17 +414,22 @@ def antenna(side):
 
 
 # ---------------------------------------------------------------- body
-TORSO = dict(x0=-17.8, x1=36.2, y=26.7, z0=86.0, z1=131.9)
+TORSO = dict(x0=-17.8, x1=36.2, y=25.3, z0=86.0, z1=131.9)
 TORSO_XZ = [(-17.7, 86.3), (-17.8, 128.3), (-8.2, 131.9), (28.2, 131.9), (29.6, 131.4), (36.2, 123.5),
             (36.0, 91.0), (23.9, 87.5), (16.0, 86.1), (-16.7, 86.0)]
-TORSO_YZ = [(-26.7, 94.0), (-26.7, 122.0), (-25.3, 122.4), (-25.2, 128.3), (-17.1, 131.9), (17.1, 131.9),
-            (25.2, 128.3), (25.3, 122.4), (26.7, 122.0), (26.7, 94.0), (25.3, 93.6), (25.0, 86.2),
+TORSO_YZ = [(-25.3, 93.6), (-25.3, 122.4), (-25.2, 128.3), (-17.1, 131.9), (17.1, 131.9),
+            (25.2, 128.3), (25.3, 122.4), (25.3, 93.6), (25.0, 86.2),
             (-25.0, 86.2), (-25.3, 93.6)]
 # Plan outline: sides taper towards the front and step out round the hip.
-TORSO_XY = [(-17.8, -24.8), (-17.8, 24.8), (-11.3, 25.3), (-10.9, 26.7), (17.0, 26.7), (17.4, 25.3),
+TORSO_XY = [(-17.8, -24.8), (-17.8, 24.8), (-11.3, 25.3), (17.4, 25.3),
             (21.5, 24.8), (27.0, 23.8), (32.1, 22.8), (35.6, 21.8), (36.3, 21.0),
             (36.3, -21.0), (35.6, -21.8), (32.1, -22.8), (27.0, -23.8), (21.5, -24.8),
-            (17.4, -25.3), (17.0, -26.7), (-10.9, -26.7), (-11.3, -25.3)]
+            (17.4, -25.3), (-11.3, -25.3)]
+# Round recess in each side of the torso round the hip joint (x, z), and its floor.
+HIP_RECESS_XZ = [(-10.5, 105.5), (-10.5, 110.5), (-8.5, 115.5), (-4.5, 119.5), (0.5, 121.5), (6.0, 121.5),
+                 (10.0, 120.0), (14.0, 116.5), (16.5, 111.0), (16.5, 105.0), (14.0, 99.5), (10.0, 96.0),
+                 (5.5, 94.5), (0.5, 94.5), (-4.5, 96.5), (-8.5, 100.5)]
+HIP_RECESS_FLOOR = 21.5
 # The edges between the top face and the sides are bevelled, more towards the front:
 # a plane |y| = a + b x + c z fitted to the reference, applied for x >= x0.
 TORSO_CORNER_BEVEL = dict(a=154.741, b=-0.3602, c=-0.9695, x0=19.0)
@@ -473,8 +478,9 @@ def back_panel_recess():
 
 def torso():
     t = torso_solid()
+    recesses = [outer_slab(side, HIP_RECESS_XZ, HIP_RECESS_FLOOR, TORSO["y"] + 3) for side in (1, -1)]
     t = t.cut([chest_plate_region(0), back_panel_recess(), neck_body(g()),
-               pin_hole_y(HIP[0], HIP[1], -TORSO["y"], TORSO["y"])])
+               pin_hole_y(HIP[0], HIP[1], -TORSO["y"], TORSO["y"])] + recesses)
     # Red tab: a pocket 1 mm deep into the top chamfer.
     return t.cut(_chamfer_pocket(0))
 
@@ -513,9 +519,14 @@ def neck():
 
 
 # ---------------------------------------------------------------- legs
-KNEE = (-18.3, 72.6)
+KNEE = (-17.5, 72.0)          # centre of the knee bolt on the reference
 ANKLE = (39.3, 9.8)
-THIGH_Y = (26.8, 32.6)           # inner and outer face of the thigh plate
+THIGH_Y = (26.36, 32.6)          # inner rim and outer face of the thigh plate
+# The plate is a shallow tray: hollow underneath down to THIGH_HOLLOW, inside a rim
+# THIGH_RIM wide. A hub hidden in the torso's hip recess carries the hip pin.
+THIGH_HOLLOW = 28.24
+THIGH_RIM = 2.5
+HIP_HUB_R = 5.5
 SHIN_Y = (19.2, 25.9)
 SHIN_PLATE_Y = (28.6, 31.5)      # red shin plate face, and its two lugs
 # Side outlines (x, z) traced from the reference mesh with ref_profiles.py.
@@ -619,7 +630,9 @@ def thigh_solid(side):
     if face is None:
         return base.fuse(outer_slab(side, THIGH_XZ, base_top - 0.01, y1))
     loft = Part.makeLoft([xz_wire(THIGH_XZ, side * base_top), xz_wire(face, side * y1)], True, True)
-    return base.fuse(loft).removeSplitter()
+    tray = base.fuse(loft).removeSplitter().cut(outer_slab(side, offset_poly(THIGH_XZ, -THIGH_RIM), y0 - 1, THIGH_HOLLOW))
+    hub = cyl_y(HIP[0], HIP[1], HIP_HUB_R, side * (HIP_RECESS_FLOOR + 0.3), side * (THIGH_HOLLOW + 0.1))
+    return tray.fuse(hub).removeSplitter()
 
 
 def thigh(side):
@@ -629,7 +642,7 @@ def thigh(side):
                outer_slab(side, SLOT_XZ, THIGH_Y[1] - SLOT_DEPTH, THIGH_Y[1] + 3),
                cyl_y(KNEE[0], KNEE[1], KNEE_CAP["pocket_r"], side * (THIGH_Y[1] - KNEE_CAP["sink"]),
                      side * (THIGH_Y[1] + 3))])
-    y0, y1 = ys(side, THIGH_Y)
+    y0, y1 = ys(side, (HIP_RECESS_FLOOR, THIGH_Y[1]))
     for x, z in (HIP, KNEE):
         t = t.cut(pin_hole_y(x, z, y0, y1))
     return t
@@ -726,8 +739,8 @@ def shin_plate_outline():
 def shin(side):
     y0, y1 = ys(side, SHIN_Y)
     sh = prism_xz(SHIN_XZ, y0, y1)
-    # Spacer boss at the knee so the shin bears on the thigh plate.
-    sh = sh.fuse(cyl_y(KNEE[0], KNEE[1], 7.0, side * SHIN_Y[1], side * (THIGH_Y[0] - 0.2))).removeSplitter()
+    # Spacer boss at the knee, reaching into the thigh's hollow so the shin bears on the plate.
+    sh = sh.fuse(cyl_y(KNEE[0], KNEE[1], 6.0, side * SHIN_Y[1], side * (THIGH_HOLLOW - 0.2))).removeSplitter()
     sh = sh.cut(outer_slab(side, shin_plate_outline(), SHIN_Y[1] - INLAY, SHIN_Y[1] + 8))
     for x, z in (KNEE, ANKLE):
         sh = sh.cut(pin_hole_y(x, z, y0 - 2, y1 + 2))
