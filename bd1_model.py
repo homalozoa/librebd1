@@ -120,10 +120,10 @@ HEAD_XY = [(-60.4, -52.2), (-60.7, 52.2), (-59.1, 55.5), (52.0, 55.5), (52.2, 53
 # outside in, measured from the reference's height maps and mirrored.
 SNOUT_X = 52.0                   # where the snout meets the front face of the main head
 FACE_X = 60.0
-HOOD_OUTER = [(53.7, 152.3), (53.0, 154.5), (51.0, 162.6), (49.0, 170.2), (47.0, 176.7), (45.0, 180.5),
-              (43.0, 181.9), (41.0, 182.6), (39.0, 182.9)]
-HOOD_INNER = [(50.3, 140.0), (50.2, 152.5), (49.0, 160.8), (47.0, 168.6), (45.0, 175.2), (43.0, 179.1),
-              (41.0, 180.5)]
+HOOD_OUTER = [(53.7, 152.3), (53.5, 154.5), (51.5, 162.6), (49.5, 170.2), (47.5, 176.7), (45.5, 180.5),
+              (43.5, 181.9), (41.5, 182.6), (39.5, 182.9)]
+HOOD_INNER = [(50.6, 140.0), (50.6, 152.5), (49.5, 160.8), (47.5, 168.6), (45.5, 175.2), (43.5, 179.1),
+              (41.5, 180.5)]
 # Lower edge of the face panel: it reaches down into the two chin tabs and opens into a
 # slot between the eyes.
 GOGGLE = [(50.3, 153.0), (49.0, 152.2), (47.0, 151.3), (45.0, 150.5), (43.0, 149.9), (40.0, 149.75),
@@ -150,13 +150,13 @@ EYES = {  # BD-1's right eye is the larger one with a blue lens.
 EYE_BACK = 54.0           # floor of the eye sockets, 6 mm behind the face panel
 RING_FRONT = 72.0
 RING_LIP = (1.5, 2.0)     # inner lip of the eye barrel: width, how far it is set back
-EAR = dict(x=-30.0, z=170.6, r=17.0, y0=HEAD_Y, y1=62.8)
-# Ear disc relief as (radius, distance from the centre plane): the disc body with its
-# rounded rim, and the grey centre (cone, annular groove, hub, dimple) that sits in it.
-EAR_BODY = [(0.0, 55.5), (0.0, 56.0), (11.0, 56.0), (11.0, 62.8), (14.0, 62.8), (15.6, 62.0), (16.6, 60.2),
-            (17.0, 58.0), (17.0, 55.5)]
-EAR_CENTRE = [(0.0, 56.0), (0.0, 59.8), (3.0, 59.8), (3.0, 61.9), (6.0, 61.9), (6.4, 56.8), (9.0, 56.8),
-              (10.8, 62.6), (10.8, 56.0)]
+EAR = dict(x=-28.3, z=171.0, r=16.4, y0=HEAD_Y, y1=62.85)
+# Ear relief as (radius, distance from the centre plane), fitted round the rim's centre:
+# an outer ring with a flat rim and bevelled edge, and the grey centre that sits inside
+# it against the head (red-painted cone, deep annular groove, hub, dimple).
+EAR_RING = [(11.0, 55.5), (11.0, 62.85), (14.2, 62.85), (16.4, 56.3), (16.4, 55.5)]
+EAR_CENTRE = [(0.0, 55.5), (0.0, 59.8), (3.2, 59.8), (3.3, 61.6), (5.8, 61.9), (5.9, 55.9), (7.7, 55.9),
+              (10.8, 62.4), (10.8, 55.5)]
 ANTENNA_BASE = (-37.0, 183.0)
 ANTENNA_TIP = (-77.8, 242.6)
 ANTENNA_D = 2.1
@@ -331,10 +331,8 @@ def revolve_ear(profile, side):
 
 
 def ear_disc(side):
-    """Ear disc with a rounded rim and a pocket for the grey centre; peg into the head side."""
-    d = revolve_ear(EAR_BODY, side)
-    peg = Part.makeCylinder(PIN_D / 2, s(6), V(s(EAR["x"]), s(side * EAR["y0"]), s(EAR["z"])), V(0, -side, 0))
-    d = d.fuse(peg)
+    """Outer ear ring with its flat rim and bevelled edge; holds the antenna."""
+    d = revolve_ear(EAR_RING, side)
     # Socket for the antenna rod, drilled along the antenna direction.
     (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
     L = math.hypot(tx - bx, tz - bz)
@@ -345,8 +343,10 @@ def ear_disc(side):
 
 
 def ear_centre(side):
-    """Grey centre of the ear: cone (paint it red), deep annular groove, hub and dimple."""
-    return revolve_ear([(min(r, 11.0 - g()), yv) for r, yv in EAR_CENTRE], side)
+    """Grey centre of the ear: cone (paint it red), deep annular groove, hub and dimple; pegs into the head."""
+    c = revolve_ear([(min(r, 11.0 - g()), yv) for r, yv in EAR_CENTRE], side)
+    peg = Part.makeCylinder(PIN_D / 2, s(6), V(s(EAR["x"]), s(side * EAR["y0"]), s(EAR["z"])), V(0, -side, 0))
+    return c.fuse(peg).removeSplitter()
 
 
 def antenna_exit():
@@ -390,7 +390,8 @@ CHEST_DEPTH = 5.2                    # the grey chest plate sits this far behind
 BACK_PANEL = dict(face=(21.5, 89.5, 125.0, -17.8), floor=(19.5, 92.0, 122.0, -13.9))
 NECK_AXIS = ((29.6, 121.9), (1.1, 158.8))
 NECK_T, NECK_W = 9.3, 9.4
-CHEST_PLATE = [(-13.0, 120.0), (13.0, 120.0), (11.0, 96.0), (-11.0, 96.0)]   # (y, z)
+CHEST_PLATE = [(-13.5, 120.5), (13.5, 120.5), (13.5, 105.0), (11.0, 103.0), (11.0, 94.8), (-11.0, 94.8),
+               (-11.0, 103.0), (-13.5, 105.0)]   # (y, z), stepped in near the bottom
 CHEST_TAB_HW = 5.0                   # half width of the red tab on the top chamfer
 HIP = (5.0, 110.5)
 
@@ -406,7 +407,7 @@ def chest_floor_x():
 
 
 def chest_plate_region(gap):
-    return prism_yz(_inset(CHEST_PLATE, gap), chest_floor_x(), TORSO["x1"] + 3)
+    return prism_yz(offset_poly(CHEST_PLATE, -gap), chest_floor_x(), TORSO["x1"] + 3)
 
 
 def back_panel_recess():
@@ -444,7 +445,7 @@ def _chamfer_pocket(gap):
 def chest_plate():
     """Grey plate lining the floor of the chest recess, with two screw dimples."""
     x0 = chest_floor_x()
-    p = prism_yz(_inset(CHEST_PLATE, g()), x0, x0 + INLAY)
+    p = prism_yz(offset_poly(CHEST_PLATE, -g()), x0, x0 + INLAY)
     for y in (-6.0, 6.0):
         p = p.cut(cyl_x(y, 113.0, 1.2, x0 + INLAY - 0.5, x0 + INLAY + 1))
     return p

@@ -4,7 +4,8 @@ Run: /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd depth_diff.py
 For each of +x (front), -x (back), +y (left), -y (right), +z (top), -z (bottom)
 it rasterises the outermost surface of both meshes into a height map, then
 writes views/depth_<dir>.png (red = model stands out, blue = reference stands
-out, grey = within TOL) and prints the largest differing regions, in mm.
+out, grey = within TOL) plus the raw height maps in views/depth_<dir>.npz, and
+prints the largest differing regions, in mm. Pass direction names to run only those.
 """
 import os
 import sys
@@ -92,6 +93,7 @@ def main():
         img[red] = np.stack([np.full(red.sum(), 220), 200 - 160 * k[red], 200 - 160 * k[red]], 1)
         img[blue] = np.stack([200 - 160 * k[blue], 200 - 120 * k[blue], np.full(blue.sum(), 230)], 1)
         Image.fromarray(img).save(os.path.join(out, f"depth_{name}.png"))
+        np.savez_compressed(os.path.join(out, f"depth_{name}.npz"), model=hm, ref=hr, box=np.array(box))
         print(f"== {name}: depth along {'+' if sign > 0 else '-'}{NAMES[ax]}, image right {NAMES[ua]}, up {NAMES[va]}")
         regions = []
         for label, mask in (("model sticks out", red), ("reference sticks out", blue)):
