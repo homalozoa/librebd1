@@ -130,6 +130,8 @@ npm run dev        # 本地开发，http://localhost:5173
 npm run build      # 产物在 web/dist，纯静态文件
 ```
 
+线上地址（开启 Pages 后）：https://homalozoa.github.io/openbd1/
+
 **部署到 GitHub Pages**：推到 GitHub 后，在仓库 Settings → Pages 里把 Source 选成 “GitHub Actions”。之后每次推送 `main` 上 `web/` 的改动，`.github/workflows/pages.yml` 会自己跑 `npm ci && npm run build` 并发布 `web/dist`。资源路径是相对的，放在 `https://用户名.github.io/openbd1/` 这样的子路径下也能用。
 
 页面读 `web/public/data/` 里的压缩网格，这份数据是提交进仓库的，所以部署不需要 FreeCAD。改了模型之后在本机重新生成，再提交：

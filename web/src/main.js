@@ -1,5 +1,5 @@
 import "@fontsource-variable/inter";
-import "@fontsource-variable/newsreader";
+import "@fontsource-variable/exo-2";
 import "./style.css";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -44,15 +44,15 @@ function explodeOf(n) {
 }
 
 const STEPS = [
-  ["试配", "先不涂胶，把所有嵌件放进各自的凹槽。太紧的用锉刀轻磨，不要硬压。", /^(paint_|head_top_band|head_light|eye_band|chest_)/, "嵌件"],
-  ["头部嵌件", "头顶带、两侧涂装件和右眼红环按凹槽方向粘进头壳，灯板粘在头后凹槽底。右侧（-y）和左侧（+y）图案不同，别装反。", /^(head_shell|paint_|head_top_band|head_light|eye_band)/, "头壳 · 涂装 · 灯板"],
-  ["眼睛", "眼筒插进面板上 6 mm 深的眼窝，再把镜头塞进眼筒。右眼是钢蓝的大镜头，左眼是浅灰的。", /^(head_shell|eye_|lens_)/, "眼筒 · 镜头"],
-  ["耳朵和天线", "耳盘中心灰件用自带的 3 mm 凸销插进头侧，外圈套在外面粘住。天线先套上锥形套，再插进 2.3 mm 的斜孔。", /^(head_shell|ear_|antenna)/, "耳盘 · 天线 · 套"],
-  ["躯干与脖子", "胸板粘进胸口凹槽底，红块粘在正面和顶部斜面的交界处。脖子两端各插进 8 mm 的斜孔。", /^(head_shell|neck|torso|chest_)/, "脖子 · 躯干 · 胸板"],
-  ["大腿", "先把深棕槽底、槽顶小块和红色凸块拼进槽里，再把螺杆粘在槽底（粗的一头对准六角凹坑下方），螺纹柱粘进侧槽，膝盖盖压进凹槽。", /^(thigh_|knee_cap)/, "大腿 · 螺杆 · 螺纹柱"],
-  ["小腿和脚", "红板嵌进 1 mm 凹槽，凸耳在两头。脚的深色后半段和浅色前半段在 x = 40.5 处对接粘牢。", /^(shin_|foot_)/, "小腿 · 红板 · 脚"],
-  ["关节销，不要涂胶", "髋：3×65 mm 的销穿过左大腿、躯干、右大腿。膝：每侧一根 3×8 mm。踝：每侧一根 3×12 mm。靠摩擦定位，关节才能转。", /^(torso|thigh_(left|right)$|shin_(left|right)$|foot_|hip_pin|knee_pin|ankle_pin)/, "钢棒或 M3 螺丝"],
-  ["底座（必需）", "重心在脚跟后面，只靠两只脚站不住。把脚粘进底座的 1.2 mm 凹槽里。", /^(stand|foot_)/, "底座 · 脚"],
+  ["试配", "先别涂胶。把所有嵌件放进凹槽试一遍，太紧就用锉刀磨一点，别硬压。", /^(paint_|head_top_band|head_light|eye_band|chest_)/, "嵌件"],
+  ["头部嵌件", "头顶带、两侧的涂装件和右眼红环嵌进头壳，灯板贴在头后凹槽的底上。右边和左边的图案不一样，装之前看一眼。", /^(head_shell|paint_|head_top_band|head_light|eye_band)/, "头壳 · 涂装 · 灯板"],
+  ["眼睛", "眼筒插进面板上 6 毫米深的眼窝，镜头放进眼筒里。右眼是钢蓝色的大镜头，左眼是浅灰色的。", /^(head_shell|eye_|lens_)/, "眼筒 · 镜头"],
+  ["耳朵与天线", "耳盘中心有一根 3 毫米的凸销，插进头侧，外圈套在外面粘牢。天线先穿过锥形套，再插进 2.3 毫米的斜孔。", /^(head_shell|ear_|antenna)/, "耳盘 · 天线 · 套"],
+  ["躯干与脖子", "胸板粘在胸口凹槽的底上，红块贴在正面和顶部斜面相交的地方。脖子两头各插进 8 毫米深的斜孔。", /^(head_shell|neck|torso|chest_)/, "脖子 · 躯干 · 胸板"],
+  ["大腿", "槽里先放深棕槽底、槽顶小块和红色凸块。螺杆粘在槽底，粗的一端对着六角凹坑下方。螺纹柱粘进侧槽，膝盖盖压进凹槽。", /^(thigh_|knee_cap)/, "大腿 · 螺杆 · 螺纹柱"],
+  ["小腿与脚", "红板嵌进 1 毫米深的凹槽，两头的凸耳要露在外面。脚的深色后半和浅色前半，在 x = 40.5 处对接粘牢。", /^(shin_|foot_)/, "小腿 · 红板 · 脚"],
+  ["关节销", "髋部一根 3×65 毫米的销，穿过左大腿、躯干和右大腿。每个膝盖一根 3×8，每个脚踝一根 3×12。只靠摩擦固定，所以不要涂胶。", /^(torso|thigh_(left|right)$|shin_(left|right)$|foot_|hip_pin|knee_pin|ankle_pin)/, "钢棒或 M3 螺丝"],
+  ["底座", "重心在脚跟后面，只靠两只脚站不住。把脚粘进底座 1.2 毫米深的凹槽，它才不会倒。", /^(stand|foot_)/, "底座 · 脚"],
 ];
 
 /* ---------------- scene ---------------- */
@@ -66,16 +66,33 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(32, 1, 5, 4000);
 camera.up.set(0, 0, 1);
 
-// soft studio light: a room environment for reflections plus one warm key
+// alien-sky light: warm sun from the front, magenta rim behind, cyan fill, plus a room environment for reflections
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.55;
-scene.add(new THREE.HemisphereLight(0xfffaf0, 0xd8cfbd, 0.9));
-const key = new THREE.DirectionalLight(0xfff3e2, 2.0);
+scene.environmentIntensity = 0.5;
+scene.add(new THREE.HemisphereLight(0xa8dcff, 0x6b2c5f, 0.85));
+const key = new THREE.DirectionalLight(0xffdcae, 2.2);
 key.position.set(260, -320, 520);
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xe9eef7, 0.7);
-fill.position.set(-300, 260, 160);
+const rim = new THREE.DirectionalLight(0xff5fa8, 1.5);
+rim.position.set(-320, 280, 180);
+scene.add(rim);
+const fill = new THREE.DirectionalLight(0x5ee7ff, 0.8);
+fill.position.set(300, 260, 60);
 scene.add(fill);
+
+// glowing landing pad under the droid
+const pad = new THREE.Group();
+{
+  const cyan = new THREE.Color("#5ee7ff");
+  const ring = (r0, r1, op) => new THREE.Mesh(new THREE.RingGeometry(r0, r1, 96), new THREE.MeshBasicMaterial({ color: cyan, transparent: true, opacity: op, side: THREE.DoubleSide, depthWrite: false }));
+  const a = ring(128, 131, 0.75), b = ring(168, 169.2, 0.35), c = ring(80, 80.8, 0.25);
+  const grid = new THREE.GridHelper(520, 26, cyan, cyan);
+  grid.rotation.x = Math.PI / 2;
+  grid.material.transparent = true; grid.material.opacity = 0.1; grid.material.depthWrite = false;
+  pad.add(a, b, c, grid);
+  pad.children.forEach((m) => { m.position.set(12, 0, -5.4); m.userData.base = m.material.opacity; });
+  scene.add(pad);
+}
 
 // soft contact shadow under the droid
 const shadow = (() => {
@@ -83,9 +100,9 @@ const shadow = (() => {
   c.width = c.height = 256;
   const g = c.getContext("2d");
   const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-  grad.addColorStop(0, "rgba(40,30,20,.34)");
-  grad.addColorStop(0.55, "rgba(40,30,20,.14)");
-  grad.addColorStop(1, "rgba(40,30,20,0)");
+  grad.addColorStop(0, "rgba(4,6,28,.55)");
+  grad.addColorStop(0.55, "rgba(4,6,28,.22)");
+  grad.addColorStop(1, "rgba(4,6,28,0)");
   g.fillStyle = grad;
   g.fillRect(0, 0, 256, 256);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(330, 330),
@@ -104,13 +121,13 @@ let DATA = null;
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const GAP = 34;
 const plateX0 = (n) => -(n * 256 + (n - 1) * GAP) / 2;
-const CLAY = new THREE.Color("#d97757");
+const CYAN = new THREE.Color("#5ee7ff"), YELLOW = new THREE.Color("#ffe14d");
 
 function addItem(name, geom, hex, home, extra = {}) {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(hex), roughness: extra.rough ?? 0.6, metalness: extra.metal ?? 0.03, flatShading: true, transparent: true,
   });
-  mat.emissive.copy(CLAY);
+  mat.emissive.copy(CYAN);
   mat.emissiveIntensity = 0;
   const mesh = new THREE.Mesh(geom, mat);
   mesh.position.copy(home);
@@ -161,9 +178,9 @@ async function load() {
   }
   // print beds
   for (let i = 0; i < nPlates; i++) {
-    const b = new THREE.Mesh(new THREE.PlaneGeometry(256, 256), new THREE.MeshBasicMaterial({ color: "#faf9f5", transparent: true, opacity: 0 }));
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(256, 256), new THREE.MeshBasicMaterial({ color: "#0b2a52", transparent: true, opacity: 0 }));
     b.position.set(plateX0(nPlates) + i * (256 + GAP) + 128, 0, -0.3);
-    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry), new THREE.LineBasicMaterial({ color: "#b9b3a2", transparent: true, opacity: 0 }));
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry), new THREE.LineBasicMaterial({ color: "#5ee7ff", transparent: true, opacity: 0 }));
     edge.position.copy(b.position);
     bedGroup.add(b, edge);
   }
@@ -247,12 +264,15 @@ function frame(now) {
     it.op = lerp(it.op, dim ? 0.1 : 1, k);
     it.mat.opacity = it.op;
     it.mat.depthWrite = it.op > 0.95;
-    it.glow = lerp(it.glow, (S.hover === it.name ? 0.22 : 0) + (S.sel === it.name ? 0.3 : 0), k);
+    it.glow = lerp(it.glow, S.sel === it.name ? 0.4 : S.hover === it.name ? 0.28 : 0, k);
+    it.mat.emissive.copy(S.sel === it.name ? YELLOW : CYAN);
     it.mat.emissiveIntensity = it.glow;
   }
   shadow.material.opacity = 1 - pr;
   shadow.visible = pr < 0.98;
-  bedGroup.children.forEach((c) => { c.material.opacity = pr; c.visible = pr > 0.01; });
+  pad.visible = pr < 0.98;
+  pad.children.forEach((m) => { m.material.opacity = m.userData.base * (1 - pr); });
+  bedGroup.children.forEach((c) => { c.material.opacity = (c.isMesh ? 0.72 : 0.9) * pr; c.visible = pr > 0.01; });
   const ce = Math.cos(S.el);
   camera.position.set(S.target.x + S.r * ce * Math.cos(S.az), S.target.y + S.r * ce * Math.sin(S.az), S.target.z + S.r * Math.sin(S.el));
   camera.lookAt(S.target);
@@ -311,16 +331,16 @@ function renderInfo(names, label) {
   let html;
   if (names.length === 1) {
     const it = byName.get(names[0]), p = it.p;
-    html = `<h3>${labelOf(it.name)}</h3><div class="meta"><code>${it.name}</code></div>` +
-      `<p><span class="sw" style="background:${it.hex}"></span>${COLOUR_NAME[it.hex.toUpperCase()] || it.hex}　${it.hex}</p>`;
+    html = `<div class="kicker">发现物</div><h3>${labelOf(it.name)}</h3><div class="meta"><code>${it.name}</code></div><dl>` +
+      `<dt>颜色</dt><dd><span class="sw" style="background:${it.hex}"></span>${COLOUR_NAME[it.hex.toUpperCase()] || it.hex} ${it.hex}</dd>`;
     html += p
-      ? `<p>放在打印板 ${p.plate + 1}，高 ${p.height} mm，悬垂 ${Math.round(p.overhang)} mm²。<br>` +
-        (p.overhang > 150 ? `<span class="warn">这个方向可能需要支撑。</span>` : "基本不需要支撑。") + "</p>"
-      : "<p>硬件，不打印。3 mm 钢棒、铝棒或 M3 螺丝，靠摩擦定位，不涂胶。</p>";
+      ? `<dt>位置</dt><dd>打印板 ${p.plate + 1}</dd><dt>高度</dt><dd>${p.height} mm</dd><dt>悬垂</dt><dd>${Math.round(p.overhang)} mm²</dd></dl>` +
+        (p.overhang > 150 ? `<p class="warn">这个方向可能要加支撑。</p>` : "<p>不用支撑。</p>")
+      : `</dl><p>这是硬件，不用打印。3 毫米的钢棒、铝棒或 M3 螺丝，靠摩擦固定，不涂胶。</p>`;
   } else {
-    html = `<h3>${label || "已选中"}</h3><p>${names.length} 个零件亮起，其余变淡。</p>`;
+    html = `<div class="kicker">扫描结果</div><h3>${label || "已选中"}</h3><p>${names.length} 个零件亮起，其余变暗。</p>`;
   }
-  el.innerHTML = html + `<button id="clr">清除选择</button>`;
+  el.innerHTML = html + `<button id="clr">收起</button>`;
   $("#clr").onclick = () => { S.sel = null; S.set = null; renderInfo([]); };
 }
 
@@ -343,7 +363,7 @@ function buildPage() {
     const bases = [...new Set(names.map((n) => labelOf(n).replace(/（[左右]）/, "")))];
     const b = document.createElement("button");
     b.className = "chip";
-    b.innerHTML = `<i style="background:${hex}"></i><span><b>${COLOUR_NAME[hex] || hex}　${hex}</b><small>${bases.slice(0, 4).join("、")}${bases.length > 4 ? " 等" : ""} · ${names.length} 件</small></span>`;
+    b.innerHTML = `<i style="background:${hex}"></i><span><b>${COLOUR_NAME[hex] || hex}　${hex}</b><small>${bases.slice(0, 4).join("、")}${bases.length > 4 ? " 等" : ""}，共 ${names.length} 件</small></span>`;
     b.onclick = () => { highlight(names, `${COLOUR_NAME[hex] || hex} ${hex}`); toViewer(); };
     pal.appendChild(b);
   });
@@ -354,7 +374,7 @@ function buildPage() {
     box.className = "plate";
     const rects = DATA.parts.filter((p) => p.plate === i).map((p) =>
       `<rect data-n="${p.name}" x="${p.bed[0]}" y="${256 - p.bed[1] - p.foot[1]}" width="${p.foot[0]}" height="${p.foot[1]}" rx="1.5" fill="${p.colour}"><title>${labelOf(p.name)}</title></rect>`).join("");
-    box.innerHTML = `<h3>打印板 ${i + 1}</h3><svg viewBox="0 0 256 256" role="img" aria-label="打印板 ${i + 1} 排版">${rects}</svg>`;
+    box.innerHTML = `<h3>PLATE ${i + 1}</h3><svg viewBox="0 0 256 256" role="img" aria-label="打印板 ${i + 1} 排版">${rects}</svg>`;
     box.querySelectorAll("rect").forEach((r) => { r.onclick = () => { setMode("print"); select(r.dataset.n); toViewer(); }; });
     pl.appendChild(box);
   }
@@ -384,5 +404,7 @@ S.az = HOME_AZ;
 requestAnimationFrame(frame);
 load().catch((err) => {
   const l = $("#loading");
-  if (l) l.textContent = "载入失败：" + err;
+  if (l) l.textContent = "信号丢失：" + err;
 });
+
+addEventListener("scroll", () => document.documentElement.style.setProperty("--sy", scrollY), { passive: true });

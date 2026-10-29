@@ -10,7 +10,7 @@ All notable changes to this project are documented here. The format follows
 
 - `PRINTING.md`: parts list with print orientation, assembly steps, and nearest Bambu PLA Basic colours.
 - The 54 part STLs under `stl/`.
-- `web/`: Vite + three.js page in a warm, Claude-like style (orbit, exploded view, print beds, assembly steps) over the real part meshes, with a GitHub Pages workflow; `pack_web.py` builds its data and `render_print_layout.py` renders the print orientations.
+- `web/`: Vite + three.js page in a No Man's Sky inspired style (orbit, exploded view, print beds, assembly steps) over the real part meshes, with sci-fi epigraphs and a GitHub Pages workflow; `pack_web.py` builds its data and `render_print_layout.py` renders the print orientations.
 - MIT license for the scripts, CC BY-NC-SA 4.0 for the model files, and a fan-work notice in the README.
 
 ### Removed
