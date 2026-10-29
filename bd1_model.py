@@ -107,7 +107,6 @@ def along(c1, c2, t):
 HEAD_Y = 55.5
 HEAD_Z0, HEAD_Z1 = 151.9, 189.5   # top face height where the front and side outlines agree
 HEAD_SIDE = [(-60.7, 152.4), (52.0, HEAD_Z0), (52.0, HEAD_Z1), (-47.4, HEAD_Z1)]   # back slope from [0] to [3]
-SNOUT_Y = 53.7
 # Head outlines traced from the reference mesh (ref_profiles.py), chin tabs left out.
 HEAD_XZ = [(-60.7, 152.4), (-48.0, 188.2), (-46.8, 189.9), (51.3, 190.0), (52.0, 189.5), (52.2, 182.8),
            (75.3, 182.8), (76.7, 182.3), (69.9, 152.1), (34.3, 152.0)]
@@ -116,22 +115,33 @@ HEAD_YZ = [(-55.5, 156.7), (-55.5, 185.2), (-54.2, 188.2), (-51.5, 189.5), (51.5
 HEAD_XY = [(-60.4, -52.2), (-60.7, 52.2), (-59.1, 55.5), (52.0, 55.5), (52.2, 53.8), (69.7, 53.8),
            (75.3, 47.3), (76.8, 40.2), (76.8, -40.2), (75.3, -47.3), (69.7, -53.8), (52.2, -53.8),
            (52.0, -55.5), (-59.1, -55.5)]
-CHIN_TAB_YZ = [(28.6, 152.4), (28.6, 151.9), (37.0, 149.9), (43.1, 150.0), (48.3, 151.9), (48.3, 152.4)]
-CHIN_TAB_X = (50.6, 59.9)
-# The snout is a hood: a top plate and two side walls round a face panel set back
-# at FACE_X, with a deeper recess down the middle (measured from the reference).
+# The snout is an arched hood (top plate sweeping down into thin side walls) round a
+# goggle-shaped face panel set back at FACE_X. Half profiles (y >= 0, z) listed from the
+# outside in, measured from the reference's height maps and mirrored.
+SNOUT_X = 52.0                   # where the snout meets the front face of the main head
 FACE_X = 60.0
-HOOD_INNER_Y = 47.0
-HOOD_TOP_Z = 180.3
-NOSE_X = 52.0
-NOSE_YZ = [(-14.0, 181.0), (14.0, 181.0), (14.0, 164.0), (16.0, 160.0), (18.0, 158.0), (20.0, 156.5),
-           (24.0, 154.5), (26.0, 153.5), (32.0, 151.5), (34.0, 140.0), (-34.0, 140.0), (-32.0, 151.5),
-           (-26.0, 153.5), (-24.0, 154.5), (-20.0, 156.5), (-18.0, 158.0), (-16.0, 160.0), (-14.0, 164.0)]
+HOOD_OUTER = [(53.7, 152.3), (53.0, 154.5), (51.0, 162.6), (49.0, 170.2), (47.0, 176.7), (45.0, 180.5),
+              (43.0, 181.9), (41.0, 182.6), (39.0, 182.9)]
+HOOD_INNER = [(50.3, 140.0), (50.2, 152.5), (49.0, 160.8), (47.0, 168.6), (45.0, 175.2), (43.0, 179.1),
+              (41.0, 180.5)]
+# Lower edge of the face panel: it reaches down into the two chin tabs and opens into a
+# slot between the eyes.
+GOGGLE = [(50.3, 153.0), (49.0, 152.2), (47.0, 151.3), (45.0, 150.5), (43.0, 149.9), (40.0, 149.75),
+          (37.0, 149.9), (35.0, 150.2), (33.0, 150.6), (31.0, 151.2), (29.0, 151.8), (27.0, 152.6),
+          (25.0, 153.5), (23.0, 154.5), (21.0, 155.7), (19.0, 157.0), (17.0, 158.4), (15.0, 160.2),
+          (13.0, 162.8), (11.0, 170.5), (9.0, 175.0), (8.0, 180.5)]
+CHIN_Z = 149.5                   # lowest point of the chin tabs
+# Arched cut-out under the nose in the main head's front face, and the notch at its top.
+NOSE_ARCH = [(16.5, 152.3), (15.0, 154.1), (13.0, 156.3), (11.0, 158.4), (9.0, 160.3), (7.0, 162.0),
+             (5.0, 163.3), (3.0, 164.1), (0.0, 164.5)]
+NOSE_ARCH_X = 42.0
+TOP_NOTCH = [(19.0, 184.3), (25.5, 190.5)]
+TOP_NOTCH_X = 42.0
 PANEL_LINES_X = (-4.5, 34.7, 42.2)
 TOP_BAND_X = (-4.0, 34.2)
 SIDE_PANEL = [(-2.0, 180.0), (32.5, 180.0), (32.5, 159.5), (16.5, 159.5)]
 RED_STRIPE = [(-44.0, 182.8), (51.0, 182.8), (51.0, 187.8), (-45.8, 187.8)]
-SNOUT_RED = [(53.5, 156.5), (65.5, 156.5), (65.5, 180.0), (53.5, 180.0)]
+SNOUT_RED = dict(x=(53.5, 65.5), z=(156.5, 180.0))   # red patch on the curved hood walls
 EYES = {  # BD-1's right eye is the larger one with a blue lens.
     "right": dict(y=-29.25, z=166.3, r=13.0, lens_r=8.6, front=76.1, ring=RED, lens=BLUE),
     "left": dict(y=26.5, z=166.3, r=10.6, lens_r=8.4, front=76.6, ring=GREY, lens=LENS_GREY,
@@ -140,13 +150,22 @@ EYES = {  # BD-1's right eye is the larger one with a blue lens.
 EYE_BACK = 54.0           # floor of the eye sockets, 6 mm behind the face panel
 RING_FRONT = 72.0
 RING_LIP = (1.5, 2.0)     # inner lip of the eye barrel: width, how far it is set back
-EAR = dict(x=-30.0, z=170.6, r=16.5, y0=HEAD_Y, y1=62.8)
+EAR = dict(x=-30.0, z=170.6, r=17.0, y0=HEAD_Y, y1=62.8)
+# Ear disc relief as (radius, distance from the centre plane): the disc body with its
+# rounded rim, and the grey centre (cone, annular groove, hub, dimple) that sits in it.
+EAR_BODY = [(0.0, 55.5), (0.0, 56.0), (11.0, 56.0), (11.0, 62.8), (14.0, 62.8), (15.6, 62.0), (16.6, 60.2),
+            (17.0, 58.0), (17.0, 55.5)]
+EAR_CENTRE = [(0.0, 56.0), (0.0, 59.8), (3.0, 59.8), (3.0, 61.9), (6.0, 61.9), (6.4, 56.8), (9.0, 56.8),
+              (10.8, 62.6), (10.8, 56.0)]
 ANTENNA_BASE = (-37.0, 183.0)
 ANTENNA_TIP = (-77.8, 242.6)
 ANTENNA_D = 2.1
-# Green light bar on the sloped back face, measured along the slope from the bottom edge.
-LIGHT_ALONG = (5.0, 25.0)
+ANTENNA_SOCKET = 3.0      # how far the antenna goes in behind ANTENNA_BASE (stays clear of the ear centre)
+# Green light panel recessed into the sloped back face, measured along the slope from
+# the bottom edge; its face sits LIGHT_RECESS below the surface.
+LIGHT_ALONG = (3.8, 34.6)
 LIGHT_Y = 50.0
+LIGHT_RECESS = 3.0
 
 
 def _slope_frame():
@@ -157,13 +176,23 @@ def _slope_frame():
     return (xb, zb), u, n
 
 
-def light_region(gap):
+def light_region(gap, d_in, d_out):
+    """Slab on the back slope between two depths from its surface (negative = inside)."""
     (xb, zb), u, n = _slope_frame()
     a0, a1 = LIGHT_ALONG[0] + gap, LIGHT_ALONG[1] - gap
     pts = []
-    for a, d in ((a0, -INLAY), (a1, -INLAY), (a1, 3.0), (a0, 3.0)):
+    for a, d in ((a0, d_in), (a1, d_in), (a1, d_out), (a0, d_out)):
         pts.append((xb + u[0] * a + n[0] * d, zb + u[1] * a + n[1] * d))
     return prism_xz(pts, -LIGHT_Y + gap, LIGHT_Y - gap)
+
+
+def light_pocket():
+    return light_region(0, -(LIGHT_RECESS + INLAY), 3.0)
+
+
+def light_panel():
+    """Green insert lining the floor of the back recess."""
+    return light_region(g(), -(LIGHT_RECESS + INLAY), -LIGHT_RECESS)
 
 
 def top_band_region(gap):
@@ -213,14 +242,43 @@ def prism_xy(pts, z0, z1):
     return Part.Face(w).extrude(V(0, 0, s(z1 - z0)))
 
 
+def mirrored(half):
+    """Left-to-right outline from a half profile listed from the outside in (y >= 0)."""
+    left = [(-y, z) for y, z in half]
+    right = [(y, z) for y, z in reversed(half)]
+    return left + (right[1:] if half[-1][0] == 0 else right)
+
+
+def closed_below(half, z_low):
+    """Region under (or inside) a mirrored profile, closed off at z_low."""
+    return [(-half[0][0], z_low)] + mirrored(half) + [(half[0][0], z_low)]
+
+
 def head_solid():
-    """Intersection of the traced side, front and top outlines, plus the two chin tabs."""
-    h = prism_xz(HEAD_XZ, -60, 60).common(prism_yz(HEAD_YZ, -70, 90)).common(prism_xy(HEAD_XY, 140, 200))
-    tabs = [prism_yz([(side * y, z) for y, z in CHIN_TAB_YZ], *CHIN_TAB_X) for side in (1, -1)]
-    h = h.fuse(tabs)
-    hood = box(FACE_X, 90, -HOOD_INNER_Y, HOOD_INNER_Y, 140, HOOD_TOP_Z)
-    nose = prism_yz(NOSE_YZ, NOSE_X, FACE_X + 1)
-    return h.cut([hood, nose]).removeSplitter()
+    """Main head from the traced outlines, plus the arched hood and the goggle-shaped face panel."""
+    outlines = prism_xz(HEAD_XZ, -60, 60).common(prism_xy(HEAD_XY, 140, 200))
+    main = outlines.common(prism_yz(HEAD_YZ, -70, 90)).common(box(-70, SNOUT_X, -60, 60, 140, 200))
+    snout = outlines.common(prism_yz(closed_below(HOOD_OUTER, 140.0), SNOUT_X - 0.01, 90))
+    chin = box(SNOUT_X, FACE_X, -HOOD_INNER[0][0], HOOD_INNER[0][0], CHIN_Z, 153.0)
+    h = main.fuse([snout, chin])
+    cavity = prism_yz(closed_below(HOOD_INNER, 130.0), FACE_X, 90)
+    below = prism_yz(closed_below(GOGGLE, 130.0), SNOUT_X, 90)
+    arch = prism_yz(closed_below(NOSE_ARCH, 130.0), NOSE_ARCH_X, SNOUT_X + 0.5)
+    (y0, z0), (y1, z1) = TOP_NOTCH
+    notch = prism_yz([(-y0, z0), (y0, z0), (y1, z1), (y1, 200.0), (-y1, 200.0), (-y1, z1)],
+                     TOP_NOTCH_X, SNOUT_X + 0.5)
+    return h.cut([cavity, below, arch, notch]).removeSplitter()
+
+
+def snout_red_region(side, gap):
+    """1 mm skin of the curved hood wall inside the SNOUT_RED window, on one side."""
+    from shapely.geometry import Polygon
+    outer = closed_below(HOOD_OUTER, 140.0)
+    inner = Polygon(outer).buffer(-INLAY, join_style=2)
+    skin = prism_yz(outer, 40, 90).cut(prism_yz(list(inner.exterior.coords)[:-1], 39, 91))
+    (x0, x1), (z0, z1) = SNOUT_RED["x"], SNOUT_RED["z"]
+    window = box(x0 + gap, x1 - gap, *ys(side, (0.0, 60.0)), z0 + gap, z1 - gap)
+    return skin.common(window)
 
 
 def head_shell():
@@ -230,10 +288,10 @@ def head_shell():
         ring = box(x - 0.4, x + 0.4, -HEAD_Y - 1, HEAD_Y + 1, HEAD_Z0 - 1, HEAD_Z1 + 1)
         ring = ring.cut(box(x - 1, x + 1, -HEAD_Y + 0.6, HEAD_Y - 0.6, HEAD_Z0 + 0.6, HEAD_Z1 - 0.6))
         h = h.cut(ring)
-    cuts = [top_band_region(0), light_region(0)]
+    cuts = [top_band_region(0), light_pocket()]
     for side in (1, -1):
         cuts += [side_region(SIDE_PANEL, side, 0), side_region(RED_STRIPE, side, 0),
-                 side_region(SNOUT_RED, side, 0, SNOUT_Y)]
+                 snout_red_region(side, 0)]
         # 3 mm peg hole for the ear disc.
         cuts.append(pin_hole_y(EAR["x"], EAR["z"], side * (HEAD_Y - 8), side * HEAD_Y))
     for e in EYES.values():
@@ -265,34 +323,30 @@ def lens(e):
     return body.fuse(parts).removeSplitter()
 
 
+def revolve_ear(profile, side):
+    """Solid of revolution of a (radius, distance) profile about the ear axis, on one side."""
+    pts = [V(s(EAR["x"] + r), s(side * yv), s(EAR["z"])) for r, yv in profile]
+    face = Part.Face(Part.makePolygon(pts + [pts[0]]))
+    return face.revolve(V(s(EAR["x"]), 0, s(EAR["z"])), V(0, 1, 0), 360)
+
+
 def ear_disc(side):
-    y0, y1 = side * EAR["y0"], side * EAR["y1"]
-    d = cyl_y(EAR["x"], EAR["z"], EAR["r"], y0, y1)
-    d = try_fillet(d, 2.5, [e for e in d.Edges if abs(abs(e.BoundBox.Center.y) - s(EAR["y1"])) < 1e-6])
-    # Grey centre inlay pocket and a paint groove for the red ring.
-    d = d.cut(ear_centre_region(side, 0))
-    groove = cyl_y(EAR["x"], EAR["z"], 13.6, side * (EAR["y1"] - 0.6), side * (EAR["y1"] + 1))
-    d = d.cut(groove.cut(cyl_y(EAR["x"], EAR["z"], 12.8, side * (EAR["y1"] - 1), side * (EAR["y1"] + 2))))
-    peg = Part.makeCylinder(PIN_D / 2, s(6), V(s(EAR["x"]), s(y0), s(EAR["z"])), V(0, -side, 0))
+    """Ear disc with a rounded rim and a pocket for the grey centre; peg into the head side."""
+    d = revolve_ear(EAR_BODY, side)
+    peg = Part.makeCylinder(PIN_D / 2, s(6), V(s(EAR["x"]), s(side * EAR["y0"]), s(EAR["z"])), V(0, -side, 0))
     d = d.fuse(peg)
     # Socket for the antenna rod, drilled along the antenna direction.
     (bx, bz), (tx, tz) = ANTENNA_BASE, ANTENNA_TIP
     L = math.hypot(tx - bx, tz - bz)
     dirv = V((tx - bx) / L, 0, (tz - bz) / L)
     yc = side * (EAR["y0"] + EAR["y1"]) / 2
-    start = V(s(bx), s(yc), s(bz)) - dirv * s(8)
-    return d.cut(Part.makeCylinder(ROD_HOLE / 2, s(12), start, dirv)).removeSplitter()
-
-
-def ear_centre_region(side, gap):
-    return cyl_y(EAR["x"], EAR["z"], 9.5 - gap, side * (EAR["y1"] - INLAY), side * (EAR["y1"] + 2))
+    start = V(s(bx), s(yc), s(bz)) - dirv * s(ANTENNA_SOCKET + 0.5)
+    return d.cut(Part.makeCylinder(ROD_HOLE / 2, s(ANTENNA_SOCKET + 6), start, dirv)).removeSplitter()
 
 
 def ear_centre(side):
-    c = cyl_y(EAR["x"], EAR["z"], 9.5 - g(), side * (EAR["y1"] - INLAY), side * EAR["y1"])
-    # Centre hub ring, cut in so the face stays flush with the disc.
-    return c.cut(cyl_y(EAR["x"], EAR["z"], 4.6, side * (EAR["y1"] - 0.5), side * (EAR["y1"] + 1))
-                 .cut(cyl_y(EAR["x"], EAR["z"], 3.8, side * (EAR["y1"] - 1), side * (EAR["y1"] + 2))))
+    """Grey centre of the ear: cone (paint it red), deep annular groove, hub and dimple."""
+    return revolve_ear([(min(r, 11.0 - g()), yv) for r, yv in EAR_CENTRE], side)
 
 
 def antenna_exit():
@@ -312,8 +366,8 @@ def antenna(side):
     L = math.hypot(tx - bx, tz - bz)
     dirv = V((tx - bx) / L, 0, (tz - bz) / L)
     yc = side * (EAR["y0"] + EAR["y1"]) / 2
-    start = V(s(bx), s(yc), s(bz)) - dirv * s(7)
-    rod = Part.makeCylinder(min(s(ANTENNA_D / 2), ROD_HOLE / 2 - 0.1), s(L + 7), start, dirv)
+    start = V(s(bx), s(yc), s(bz)) - dirv * s(ANTENNA_SOCKET)
+    rod = Part.makeCylinder(min(s(ANTENNA_D / 2), ROD_HOLE / 2 - 0.1), s(L + ANTENNA_SOCKET), start, dirv)
     (ex, ez), _ = antenna_exit()
     collar = Part.makeCylinder(s(2.4), s(5), V(s(ex), s(yc), s(ez)), dirv)
     tip = Part.makeCone(s(ANTENNA_D / 2), 0.2, s(3), V(s(tx), s(yc), s(tz)), dirv)
@@ -600,13 +654,13 @@ def parts():
     out = [
         ("head_shell", head_shell(), WHITE, "头壳（米白）；顶带、侧板、红条、绿灯、眼睛都是嵌件"),
         ("head_top_band", hs.common(top_band_region(g())), GREY, "头顶灰色横带"),
-        ("head_light", hs.common(light_region(g())), GREEN, "头后斜面的绿色灯条"),
+        ("head_light", light_panel(), GREEN, "头后斜面凹槽里的绿色灯板"),
     ]
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
             (f"head_side_panel_{tag}", hs.common(side_region(SIDE_PANEL, side, g())), GREY, "头侧灰板"),
             (f"head_red_stripe_{tag}", hs.common(side_region(RED_STRIPE, side, g())), RED, "头侧上沿红条"),
-            (f"snout_red_{tag}", hs.common(side_region(SNOUT_RED, side, g(), SNOUT_Y)), RED, "口鼻两侧红块"),
+            (f"snout_red_{tag}", hs.common(snout_red_region(side, g())), RED, "罩壳两侧弧面上的红块"),
         ]
     for tag, e in EYES.items():
         out += [
@@ -615,8 +669,8 @@ def parts():
         ]
     for side, tag in ((1, "left"), (-1, "right")):
         out += [
-            (f"ear_{tag}", ear_disc(side), WHITE, "耳盘（米白，外圈槽里涂红）"),
-            (f"ear_centre_{tag}", ear_centre(side), GREY, "耳盘中心灰件"),
+            (f"ear_{tag}", ear_disc(side), WHITE, "耳盘外圈"),
+            (f"ear_centre_{tag}", ear_centre(side), GREY, "耳盘中心灰件（锥面涂红圈）"),
             (f"antenna_{tag}", antenna(side), WHITE, "天线；可换 2 mm 黄铜棒"),
         ]
     out += [
