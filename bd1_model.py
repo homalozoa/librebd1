@@ -131,6 +131,7 @@ GOGGLE = [(50.3, 153.0), (49.0, 152.2), (47.0, 151.3), (45.0, 150.5), (43.0, 149
           (25.0, 153.5), (23.0, 154.5), (21.0, 155.7), (19.0, 157.0), (17.0, 158.4), (15.0, 160.2),
           (13.0, 162.8), (11.0, 170.5), (9.0, 175.0), (8.5, 177.5), (12.0, 178.4), (16.5, 180.5)]
 CHIN_Z = 149.5                   # lowest point of the chin tabs
+CHIN_Y = 49.0                    # the tabs end inside the hood walls
 # Arched cut-out under the nose in the main head's front face, and the notch at its top.
 NOSE_ARCH = [(16.5, 152.3), (15.0, 154.1), (13.0, 156.3), (11.0, 158.4), (9.0, 160.3), (7.0, 162.0),
              (5.0, 163.3), (3.0, 164.1), (0.0, 164.5)]
@@ -262,7 +263,7 @@ def head_solid():
     outlines = prism_xz(HEAD_XZ, -60, 60).common(prism_xy(HEAD_XY, 140, 200))
     main = outlines.common(prism_yz(HEAD_YZ, -70, 90)).common(box(-70, SNOUT_X, -60, 60, 140, 200))
     snout = outlines.common(prism_yz(closed_below(HOOD_OUTER, 140.0), SNOUT_X - 0.01, 90))
-    chin = box(SNOUT_X, FACE_X, -HOOD_INNER[0][0], HOOD_INNER[0][0], CHIN_Z, 153.0)
+    chin = box(SNOUT_X, FACE_X, -CHIN_Y, CHIN_Y, CHIN_Z, 153.0)
     h = main.fuse([snout, chin])
     cavity = prism_yz(closed_below(HOOD_INNER, 130.0), FACE_X, 90)
     below = prism_yz(closed_below(GOGGLE, 130.0), SNOUT_X, 90)
@@ -390,10 +391,13 @@ TORSO_YZ = [(-26.7, 94.0), (-26.7, 122.0), (-25.3, 122.4), (-25.2, 128.3), (-17.
             (25.2, 128.3), (25.3, 122.4), (26.7, 122.0), (26.7, 94.0), (25.3, 93.6), (25.0, 86.2),
             (-25.0, 86.2), (-25.3, 93.6)]
 # Plan outline: sides taper towards the front and step out round the hip.
-TORSO_XY = [(-17.8, -24.0), (-17.8, 24.0), (-11.3, 25.3), (-10.9, 26.7), (17.0, 26.7), (17.4, 25.3),
+TORSO_XY = [(-17.8, -24.8), (-17.8, 24.8), (-11.3, 25.3), (-10.9, 26.7), (17.0, 26.7), (17.4, 25.3),
             (21.5, 24.8), (27.0, 23.8), (32.1, 22.8), (35.6, 21.8), (36.3, 21.0),
             (36.3, -21.0), (35.6, -21.8), (32.1, -22.8), (27.0, -23.8), (21.5, -24.8),
             (17.4, -25.3), (17.0, -26.7), (-10.9, -26.7), (-11.3, -25.3)]
+# The edges between the top face and the sides are bevelled, more towards the front:
+# a plane |y| = a + b x + c z fitted to the reference, applied for x >= x0.
+TORSO_CORNER_BEVEL = dict(a=154.741, b=-0.3602, c=-0.9695, x0=19.0)
 CHEST_DEPTH = 5.2                    # the grey chest plate sits this far behind the front face
 # Recessed back panel: outline at the back face and at its floor (y half-width, z0, z1, x).
 BACK_PANEL = dict(face=(21.5, 89.5, 125.0, -17.8), floor=(19.5, 92.0, 122.0, -13.9))
@@ -406,9 +410,17 @@ HIP = (5.0, 110.5)
 
 
 def torso_solid():
-    """Intersection of the traced side, front and plan outlines."""
-    return (prism_xz(TORSO_XZ, -30, 30).common(prism_yz(TORSO_YZ, -25, 45))
-            .common(prism_xy(TORSO_XY, 80, 140)))
+    """Intersection of the traced side, front and plan outlines, with the top side edges bevelled."""
+    t = (prism_xz(TORSO_XZ, -30, 30).common(prism_yz(TORSO_YZ, -25, 45))
+         .common(prism_xy(TORSO_XY, 80, 140)))
+    b = TORSO_CORNER_BEVEL
+    cuts = []
+    for side in (1, -1):
+        corners = [(b["x0"], 118.0), (45.0, 118.0), (45.0, 140.0), (b["x0"], 140.0)]
+        vs = [V(s(x), s(side * (b["a"] + b["b"] * x + b["c"] * zz)), s(zz)) for x, zz in corners]
+        face = Part.Face(Part.makePolygon(vs + [vs[0]]))
+        cuts.append(face.extrude(V(0, s(side * 30), 0)))
+    return t.cut(cuts)
 
 
 def chest_floor_x():
