@@ -2,8 +2,9 @@
 
 Run: /Applications/FreeCAD.app/Contents/Resources/bin/python -I pack_web.py
 
-The binary holds, per part, welded int16 vertices (quantised to the part's own bounding box)
-and uint32 triangle indices. parts.json says where each part lives in the file, its colour,
+The binary holds, per part, int16 vertices (quantised to the part's own bounding box), int8
+creased normals and uint32 triangle indices. Normals are smoothed across faces within CREASE
+degrees of each other and left sharp beyond it, so the page never has to compute them. parts.json says where each part lives in the file, its colour,
 and its print pose (rotation + position on a 256 x 256 bed) from render_print_layout.orient().
 """
 import glob
@@ -48,6 +49,42 @@ def weld(tris, step=0.005):
     return uniq.astype(float) * step, idx[keep]
 
 
+CREASE = 34.0  # degrees; shallower joins are smoothed, steeper ones stay as hard edges
+
+
+def creased(v, idx):
+    """Split welded vertices where the surface turns more than CREASE, and give each copy a smooth normal.
+
+    Returns (positions, int8 normals, new triangle indices).
+    """
+    tri = v[idx]
+    fn = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    area = np.linalg.norm(fn, axis=1)
+    fn = np.where(area[:, None] > 1e-12, fn / np.maximum(area, 1e-12)[:, None], 0.0)
+    w = fn * area[:, None]
+    cv = idx.reshape(-1)                      # vertex id of each triangle corner
+    cf = np.repeat(np.arange(len(idx)), 3)    # face id of each corner
+    order = np.argsort(cv, kind="stable")
+    cv_s, cf_s = cv[order], cf[order]
+    starts = np.flatnonzero(np.r_[True, cv_s[1:] != cv_s[:-1]])
+    ends = np.r_[starts[1:], len(cv_s)]
+    cos = np.cos(np.radians(CREASE))
+    out = np.zeros((len(cv), 3))
+    for a, b in zip(starts, ends):
+        fs = cf_s[a:b]
+        n = fn[fs]
+        sm = ((n @ n.T) >= cos).astype(float) @ w[fs]
+        ln = np.linalg.norm(sm, axis=1)
+        sm = np.where(ln[:, None] > 1e-12, sm / np.maximum(ln, 1e-12)[:, None], n)
+        out[order[a:b]] = sm
+    q = np.round(out * 127).astype(np.int8)
+    key = np.column_stack([cv.astype(np.int64), q.astype(np.int64)])
+    uniq, inv = np.unique(key, axis=0, return_inverse=True)
+    pos = v[uniq[:, 0]]
+    nrm = uniq[:, 1:].astype(np.int8)
+    return pos, nrm, inv.reshape(-1, 3).astype(np.uint32)
+
+
 def main():
     os.makedirs(DATA, exist_ok=True)
     names = sorted(os.path.basename(f)[:-4] for f in glob.glob(os.path.join(HERE, "stl", "*.stl")))
@@ -56,6 +93,7 @@ def main():
     for n in names:
         t = R.load(os.path.join(HERE, "stl", n + ".stl"))
         v, idx = weld(t)
+        v, nrm, idx = creased(v, idx)
         lo, hi = v.min(0), v.max(0)
         scale = np.maximum(hi - lo, 1e-6) / 65535.0
         q = np.round((v - lo) / scale).astype(np.uint16)
@@ -63,6 +101,10 @@ def main():
             blob.append(0)
         voff = len(blob)
         blob += q.tobytes()
+        while len(blob) % 4:
+            blob.append(0)
+        noff = len(blob)
+        blob += nrm.tobytes()
         while len(blob) % 4:
             blob.append(0)
         ioff = len(blob)
@@ -76,7 +118,7 @@ def main():
         ext = r.reshape(-1, 3).max(0) - r.reshape(-1, 3).min(0)
         parts.append(dict(
             name=n, colour=colour(n), lo=lo.round(4).tolist(), scale=scale.tolist(), nv=len(v), nt=len(idx),
-            voff=voff, ioff=ioff, centre=((lo + hi) / 2).round(3).tolist(),
+            voff=voff, noff=noff, ioff=ioff, centre=((lo + hi) / 2).round(3).tolist(),
             rot=m.round(6).tolist(), dz=round(float(dz), 4), foot=[round(float(ext[0]), 2), round(float(ext[1]), 2)],
             height=round(float(ext[2]), 2), overhang=round(float(oh), 1),
             rotMin=(rt.reshape(-1, 3).min(0)).round(3).tolist(),
