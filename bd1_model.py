@@ -132,6 +132,7 @@ GOGGLE = [(50.3, 153.0), (49.0, 152.2), (47.0, 151.3), (45.0, 150.5), (43.0, 149
           (13.0, 162.8), (11.0, 170.5), (9.0, 175.0), (8.5, 177.5), (12.0, 178.4), (16.5, 180.5)]
 CHIN_Z = 149.5                   # lowest point of the chin tabs
 CHIN_Y = 49.0                    # the tabs end inside the hood walls
+CHIN_X0 = 50.6                   # the tabs start a little behind the snout
 # Arched cut-out under the nose in the main head's front face, and the notch at its top.
 NOSE_ARCH = [(16.5, 152.3), (15.0, 154.1), (13.0, 156.3), (11.0, 158.4), (9.0, 160.3), (7.0, 162.0),
              (5.0, 163.3), (3.0, 164.1), (0.0, 164.5)]
@@ -288,10 +289,13 @@ def head_solid():
     outlines = prism_xz(HEAD_XZ, -60, 60).common(prism_xy(HEAD_XY, 140, 200))
     main = outlines.common(prism_yz(HEAD_YZ, -70, 90)).common(box(-70, SNOUT_X, -60, 60, 140, 200))
     snout = outlines.common(prism_yz(closed_below(HOOD_OUTER, 140.0), SNOUT_X - 0.01, 90))
-    chin = box(SNOUT_X, FACE_X, -CHIN_Y, CHIN_Y, CHIN_Z, 153.0)
+    chin = box(CHIN_X0, FACE_X, -CHIN_Y, CHIN_Y, CHIN_Z, 153.0)
     h = main.fuse([snout, chin])
     cavity = prism_yz(closed_below(HOOD_INNER, 130.0), FACE_X, 90)
     below = prism_yz(closed_below(GOGGLE, 130.0), SNOUT_X, 90)
+    # Shape the part of the tabs behind the snout the same way, below the main head only.
+    below = below.fuse(prism_yz(closed_below(GOGGLE, 130.0), CHIN_X0 - 0.01, SNOUT_X + 0.01)
+                       .common(box(CHIN_X0 - 1, SNOUT_X + 1, -60, 60, 130, HEAD_Z0)))
     arch = prism_yz(closed_below(NOSE_ARCH, 130.0), NOSE_ARCH_X, SNOUT_X + 0.5)
     (y0, z0), (y1, z1) = TOP_NOTCH
     notch = prism_yz([(-y0, z0), (y0, z0), (y1, z1), (y1, 200.0), (-y1, 200.0), (-y1, z1)],
