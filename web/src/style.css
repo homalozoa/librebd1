@@ -24,10 +24,10 @@ code { font: 400 .84em var(--mono); color: var(--amber); }
 #gl { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; touch-action: pan-y; cursor: grab; outline: none; }
 #gl:active { cursor: grabbing; }
 .grain {
-  position: fixed; inset: -50%; z-index: 1; pointer-events: none; opacity: .09; mix-blend-mode: overlay; animation: grain 1.4s steps(6) infinite;
+  /* static and unblended on purpose: an animated mix-blend-mode layer over a WebGL canvas can strobe the whole backdrop */
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-@keyframes grain { 0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -3%); } 60% { transform: translate(-2%, -1%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); } }
 .vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(3, 4, 18, .55) 100%); }
 
 /* ---------- boot ---------- */
@@ -185,6 +185,6 @@ tr.go:hover { background: rgba(255, 255, 255, .05); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .grain, .cue i, .tag .dot::after { animation: none; }
+  .cue i, .tag .dot::after { animation: none; }
   * { transition-duration: .01s !important; }
 }

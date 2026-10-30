@@ -49,7 +49,8 @@ function explodeOf(n) {
    Renderer, post-processing, scene
    ============================================================ */
 const canvas = $("#gl");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+const DEBUG = location.search.includes("debug"); // ?debug keeps the drawing buffer so frames can be sampled
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: DEBUG });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.toneMapping = THREE.NeutralToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -62,7 +63,7 @@ camera.up.set(0, 0, 1);
 
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }));
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.7, 0.92);
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.6, 1.05);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -126,11 +127,11 @@ scene.add(sky);
     uniforms: { uTime: { value: 0 }, uPx: { value: renderer.getPixelRatio() }, uFade: { value: 1 } },
     vertexShader: `attribute float aSize; attribute float aPhase; attribute vec3 aTint; uniform float uTime, uPx; varying vec3 vC; varying float vA;
       void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); gl_Position = projectionMatrix * mv;
-        float tw = .65 + .35 * sin(uTime * (.6 + aSize * .35) + aPhase);
+        float tw = .85 + .15 * sin(uTime * (.5 + aSize * .2) + aPhase);
         gl_PointSize = aSize * uPx * (.8 + .2 * tw); vC = aTint; vA = tw * smoothstep(0., .12, position.z / 4800.); }`,
     fragmentShader: `varying vec3 vC; varying float vA; uniform float uFade;
       void main(){ vec2 q = gl_PointCoord - .5; float d = length(q); float a = smoothstep(.5, 0., d); a *= a;
-        gl_FragColor = vec4(vC * (1.6 * a) * vA * uFade, 1.); }`,
+        gl_FragColor = vec4(vC * (0.95 * a) * vA * uFade, 1.); }`,
   });
   const pts = new THREE.Points(g, m);
   pts.frustumCulled = false;
@@ -260,10 +261,10 @@ scene.add(shadowCatcher);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(k), side: THREE.DoubleSide, toneMapped: false }));
     m.position.set(...pos); m.lookAt(0, 0, 0); env.add(m);
   };
-  panel("#fff0dc", 9, 30, 20, [18, -26, 34]);   // warm key softbox
-  panel("#ff5fa8", 5, 26, 18, [-30, 22, 14]);    // magenta rim
-  panel("#6fe9ff", 3.2, 24, 16, [30, 20, 6]);    // cyan kicker
-  panel("#ffd7a8", 2.4, 60, 12, [0, 0, -30]);    // warm bounce from below
+  panel("#fff0dc", 4.2, 30, 20, [18, -26, 34]);   // warm key softbox
+  panel("#ff5fa8", 2.8, 26, 18, [-30, 22, 14]);    // magenta rim
+  panel("#6fe9ff", 2.0, 24, 16, [30, 20, 6]);    // cyan kicker
+  panel("#ffd7a8", 1.6, 60, 12, [0, 0, -30]);    // warm bounce from below
   scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.03).texture;
   scene.environmentIntensity = 0.9;
 }
@@ -347,7 +348,7 @@ async function load() {
     geo.computeBoundingSphere();
     const lens = /^lens/.test(p.name), metal = /^(knee_cap|thigh_rod|thigh_piston)/.test(p.name);
     const it = addItem(p.name, geo, p.colour, V(p.centre), lens
-      ? { p, rough: 0.06, metal: 0.25, coat: 1, coatRough: 0.03, env: 1.6 }
+      ? { p, rough: 0.1, metal: 0.25, coat: 1, coatRough: 0.1, env: 1.1 }
       : metal ? { p, rough: 0.32, metal: 0.85, coat: 0.1, env: 1.3 }
         : /^stand/.test(p.name) ? { p, rough: 0.55, coat: 0.15, env: 0.55 } : { p });
     tris += p.nt;
@@ -680,6 +681,7 @@ $("#lang").addEventListener("click", () => {
 
 applyStatic();
 boot.text.textContent = T().boot.connect;
+if (DEBUG) window.__bd1 = { renderer, composer, S, bloom };
 resize();
 requestAnimationFrame(frame);
 load().catch((err) => { console.error(err); boot.text.textContent = T().boot.lost + err; });
