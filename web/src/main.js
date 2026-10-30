@@ -218,6 +218,8 @@ const groundMat = new THREE.ShaderMaterial({
   uniforms: { uOpacity: { value: 1 }, uTime: { value: 0 }, uPad: { value: 1 } },
   vertexShader: "varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }",
   fragmentShader: `varying vec3 vW; uniform float uOpacity, uTime, uPad;
+    // a ring of half-width h at radius r, filtered by the pixel footprint aa so it never crawls when the camera moves
+    float ringLine(float d, float aa, float r, float h){ float e = abs(d - r); return clamp((h + .5 * aa - e) / aa, 0., 1.) * min(1., 2. * h / aa); }
     void main(){
       vec2 c = vW.xy - vec2(12., 0.);
       float dist = length(c);
@@ -227,9 +229,11 @@ const groundMat = new THREE.ShaderMaterial({
       vec2 gw = abs(fract(q - .5) - .5) / max(fwidth(q), vec2(1e-4));
       float line = 1. - min(min(gw.x, gw.y), 1.);
       col += vec3(.45, .85, 1.) * line * .20 * (1. - smoothstep(200., 1500., dist)) * uPad;
-      float ring = smoothstep(2.4, 0., abs(dist - 134.)) + .42 * smoothstep(1.3, 0., abs(dist - 176.)) + .25 * smoothstep(1.1, 0., abs(dist - 84.));
-      float tick = step(.5, fract(atan(c.y, c.x) * 22. / 3.14159)) * smoothstep(1.6, 0., abs(dist - 190.));
-      col += vec3(.55, .92, 1.) * (ring + tick * .5) * uPad;
+      // The dashed outer ring that used to be here shimmered badly where it is seen edge-on, so it is gone.
+      float aa = max(fwidth(dist), 1e-3);
+      float ring = ringLine(dist, aa, 134., 1.4) + .42 * ringLine(dist, aa, 176., .7) + .25 * ringLine(dist, aa, 84., .6);
+      col += vec3(.55, .92, 1.) * ring * uPad;
+      col += vec3(.30, .70, .85) * .10 * exp(-abs(dist - 134.) / 22.) * uPad;
       col += vec3(1., .55, .45) * .12 * exp(-dist / 260.) * uPad;
       float a = uOpacity * (1. - smoothstep(3800., 5200., dist));
       gl_FragColor = vec4(pow(col, vec3(2.2)), a);
