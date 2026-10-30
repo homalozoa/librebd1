@@ -3,11 +3,11 @@
 
 export const I = {
   zh: {
-    title: "openbd1 · 一台可以自己打印的 BD-1",
-    desc: "openbd1：把 BD-1 拆成 54 块，自己打印，用销子和胶水装回去。往下滑，看它散开、飞上打印板、一步步装好。",
+    title: "librebd1 · 一台可以自己打印的 BD-1",
+    desc: "librebd1：把 BD-1 拆成 54 块，自己打印，用销子和胶水装回去。往下滑，看它散开、飞上打印板、一步步装好。",
     canvas: "BD-1 三维模型，可拖动旋转，点击零件查看信息",
     navLabel: "章节",
-    brandLabel: "openbd1 回到顶部",
+    brandLabel: "librebd1 回到顶部",
     langButton: "EN",
     langLabel: "Switch to English",
     "nav.colours": "采样", "nav.explode": "拆解", "nav.print": "制造", "nav.assemble": "组装",
@@ -34,7 +34,7 @@ export const I = {
     "as.lead": "一共九步。往下滑，模型会拆开，只亮起这一步用到的零件。关节只靠摩擦站住，别涂胶，不然它就成了一座雕像。",
     "legal1": "脚本用 MIT。模型文件（<code>BD1.FCStd</code>、STL、预览图）用 CC BY-NC-SA 4.0：可以改，可以分享，别拿去卖。",
     "legal2": "BD-1 属于 Lucasfilm 和 Disney，这是一份与他们无关的同人作品。测量时用的参考网格没有许可证，不在这个仓库里。",
-    "legal3": "源码、打印指南和装配说明在 <a href=\"https://github.com/homalozoa/openbd1\" rel=\"noopener\">github.com/homalozoa/openbd1</a>。",
+    "legal3": "源码、打印指南和装配说明在 <a href=\"https://github.com/homalozoa/librebd1\" rel=\"noopener\">github.com/homalozoa/librebd1</a>。",
     "legal4": "页面用 three.js 绘制，字体是 Sora、Inter、Newsreader 和 IBM Plex Mono，全部打包在页面里。",
     scenes: { hero: "01 · 抵达", colours: "02 · 采样", explode: "03 · 拆解", print: "04 · 制造", assemble: "05 · 组装", outro: "06 · 完成" },
     boot: { connect: "正在接入阿特拉斯", decode: "解码 54 个零件", polish: "打磨表面", ready: "准备就绪", lost: "信号丢失：" },
@@ -69,11 +69,11 @@ export const I = {
   },
 
   en: {
-    title: "openbd1 · A BD-1 you can print yourself",
-    desc: "openbd1: BD-1 in 54 pieces. Print them, pin them together, glue the rest. Scroll to watch it come apart, fly onto the print beds and go back together.",
+    title: "librebd1 · A BD-1 you can print yourself",
+    desc: "librebd1: BD-1 in 54 pieces. Print them, pin them together, glue the rest. Scroll to watch it come apart, fly onto the print beds and go back together.",
     canvas: "3D model of BD-1. Drag to orbit, click a part to inspect it.",
     navLabel: "Sections",
-    brandLabel: "openbd1, back to top",
+    brandLabel: "librebd1, back to top",
     langButton: "中文",
     langLabel: "切换到中文",
     "nav.colours": "Colour", "nav.explode": "Teardown", "nav.print": "Print", "nav.assemble": "Build",
@@ -100,7 +100,7 @@ export const I = {
     "as.lead": "Nine steps. Scroll and the model comes apart and lights only what this step uses. The joints hold by friction alone. Don't glue them, or it becomes a statue.",
     "legal1": "Scripts are MIT. Model files (<code>BD1.FCStd</code>, the STLs, the preview) are CC BY-NC-SA 4.0: change them, share them, don't sell them.",
     "legal2": "BD-1 belongs to Lucasfilm and Disney. This is fan work with no connection to them. The reference mesh used for measuring has no licence and is not in this repository.",
-    "legal3": "Source, printing guide and assembly notes are at <a href=\"https://github.com/homalozoa/openbd1\" rel=\"noopener\">github.com/homalozoa/openbd1</a>.",
+    "legal3": "Source, printing guide and assembly notes are at <a href=\"https://github.com/homalozoa/librebd1\" rel=\"noopener\">github.com/homalozoa/librebd1</a>.",
     "legal4": "The page is drawn with three.js. Fonts are Sora, Inter, Newsreader and IBM Plex Mono, all bundled with it.",
     scenes: { hero: "01 · Arrival", colours: "02 · Sampling", explode: "03 · Teardown", print: "04 · Making", assemble: "05 · Assembly", outro: "06 · Done" },
     boot: { connect: "Connecting to the Atlas", decode: "Decoding 54 parts", polish: "Polishing surfaces", ready: "Ready", lost: "Signal lost: " },

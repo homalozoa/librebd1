@@ -166,7 +166,11 @@ tr.go:hover { background: rgba(255, 255, 255, .05); }
   .top nav a:not(.gh) { letter-spacing: .08em; font-size: 12.5px; }
   .top nav .gh { display: none; }
   .top nav { gap: 12px; }
-  .top nav .lang { padding: 3px 9px; }
+  .top nav .lang { padding: 3px 9px; white-space: nowrap; }
+  .brand { font-size: 15px; gap: 8px; }
+  .top nav a:not(.gh) { font-size: 11.5px; letter-spacing: .04em; }
+  .top { padding-left: 16px; padding-right: 16px; gap: 14px; }
+  .scene.hero .quote { display: none; }
   .scene::before { background: linear-gradient(0deg, rgba(5, 7, 28, .92) 0%, rgba(5, 7, 28, .74) 42%, transparent 80%); }
   /* the model lives in the upper part of the screen, the words in the lower part */
   .scene { min-height: 100svh; display: flex; align-items: flex-end; padding-top: 0; padding-bottom: 9vh; }

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the project from openbd1 to librebd1: repository, page, documentation and the Pages domain (`librebd1.haiwang.ai`). Old GitHub URLs redirect.
+
 ## [0.2.0] - 2026-10-30
 
 First public release. The 0.1.0 that was only ever tagged locally was dropped and its

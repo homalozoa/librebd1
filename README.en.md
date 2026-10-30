@@ -1,4 +1,4 @@
-# openbd1: a modular, printable BD-1 (FreeCAD)
+# librebd1: a modular, printable BD-1 (FreeCAD)
 
 [中文](README.md) · English
 
@@ -64,7 +64,7 @@ Where it cannot match exactly:
 After changing dimensions, regenerate:
 
 ```bash
-cd ~/bdx/openbd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
+cd librebd1 && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
 ```
 
 Size is controlled by `BD1_HEIGHT`, the head-top height in mm, default 190. `BD1_HEIGHT=316` is close to life size. The shape scales as a whole, while pin holes, antenna holes and glue gaps keep their real size, so the hardware does not change.
@@ -132,14 +132,14 @@ npm run dev        # local development, http://localhost:5173
 npm run build      # output in web/dist, plain static files
 ```
 
-Live address: https://openbd1.haiwang.ai/
+Live address: https://librebd1.haiwang.ai/
 
-**Deploying to GitHub Pages**: after pushing to GitHub, go to the repository's Settings → Pages and set Source to "GitHub Actions". After that, every push to `main` that touches `web/` runs `npm ci && npm run build` through `.github/workflows/pages.yml` and publishes `web/dist`. Asset paths are relative, so it works on a custom domain (this one uses `openbd1.haiwang.ai`) or under a sub-path such as `https://<user>.github.io/openbd1/`.
+**Deploying to GitHub Pages**: after pushing to GitHub, go to the repository's Settings → Pages and set Source to "GitHub Actions". After that, every push to `main` that touches `web/` runs `npm ci && npm run build` through `.github/workflows/pages.yml` and publishes `web/dist`. Asset paths are relative, so it works on a custom domain (this one uses `librebd1.haiwang.ai`) or under a sub-path such as `https://<user>.github.io/librebd1/`.
 
 The page reads the compressed meshes in `web/public/data/`. That data is committed to the repository, so deployment does not need FreeCAD. After changing the model, regenerate it locally and commit:
 
 ```bash
-cd ~/bdx/openbd1
+cd librebd1
 /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd export_stl.py
 /Applications/FreeCAD.app/Contents/Resources/bin/python -I render_print_layout.py
 /Applications/FreeCAD.app/Contents/Resources/bin/python -I pack_web.py
@@ -148,7 +148,7 @@ cd ~/bdx/openbd1
 ## Comparing with the reference mesh
 
 ```bash
-cd ~/bdx/openbd1
+cd librebd1
 /Applications/FreeCAD.app/Contents/Resources/bin/python -I glb_ref.py
 /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd render_views.py
 /Applications/FreeCAD.app/Contents/Resources/bin/python compare.py

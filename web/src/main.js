@@ -372,7 +372,7 @@ async function load() {
     it.pPos.copy(V(p.centre).applyMatrix4(m4)).add(t);
     if (++done % 18 === 0) { bootTo(0.3 + 0.6 * (done / meta.parts.length), T().boot.polish); await frameWait(); }
   }
-  console.info(`openbd1: decoded in ${Math.round(performance.now() - t0)} ms`);
+  console.info(`librebd1: decoded in ${Math.round(performance.now() - t0)} ms`);
   // hardware: steel pins (not printed)
   const pin = (name, len, c) => addItem(name, new THREE.CylinderGeometry(1.5, 1.5, len, 24), "#d0d4da", V(c), { hardware: true, rough: 0.22, metal: 1, coat: 0, env: 1.4 });
   pin("hip_pin", 65, [5, 0, 110.5]);
@@ -393,7 +393,7 @@ async function load() {
   buildPage();
   bootTo(1, T().boot.ready);
   setTimeout(() => boot.el.classList.add("off"), 250);
-  console.info(`openbd1: ${meta.parts.length} parts, ${tris} triangles, ready in ${Math.round(performance.now())} ms`);
+  console.info(`librebd1: ${meta.parts.length} parts, ${tris} triangles, ready in ${Math.round(performance.now())} ms`);
 }
 
 /* ============================================================
@@ -443,7 +443,7 @@ function direct(w, h) {
   const side = n ? 0 : 0.19, up = n ? 0.2 : 0;
   let ex = 0, pr = 0, tg = [10, 0, 118], r = n ? 700 : 590, el = 0.1, spin = 0.1, offX = side, offY = up;
   let set = null;
-  if (sc === "hero") { /* defaults */ }
+  if (sc === "hero" && n) { r = 820; offY = 0.29; } // on a phone the droid sits high, above the words
   if (sc === "colours") { el = 0.15; r = n ? 660 : 520; offX = side; }
   if (sc === "explode") {
     ex = smooth((p - 0.06) / 0.62);
