@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-30
+
+First public release. The 0.1.0 that was only ever tagged locally was dropped and its
+contents are folded in below.
+
 ### Added
 
 - English versions of the docs: `README.en.md` and `PRINTING.en.md`, cross-linked with the Chinese ones.
@@ -18,12 +23,9 @@ All notable changes to this project are documented here. The format follows
 
 - `compare_sheet.png` is no longer tracked: it shows the reference's textures.
 
-## [0.1.0] - 2026-10-30
+### Model and tools (carried over from the dropped 0.1.0)
 
-First release: a modular, printable BD-1 measured from the reference mesh,
-with the tools used to measure and compare it.
-
-### Added
+#### Added
 
 - Parametric FreeCAD model (`bd1_model.py`) of BD-1, split into 54 parts by
   colour and joined with 3 mm pins and glue; `BD1_HEIGHT` scales it while pin
@@ -47,7 +49,7 @@ with the tools used to measure and compare it.
   `compare.py` (outline IoU and band deviations), `depth_diff.py` (six-way
   surface comparison), `check_fit.py`, `export_stl.py`, `preview_gui.py`.
 
-### Fixed
+#### Fixed
 
 - Ear centre refitted to (-28.3, 171.0); hood profile half-millimetre offset.
 - Eye lens domes, left-eye barrel and lens ring, red band on the right barrel.
@@ -55,7 +57,7 @@ with the tools used to measure and compare it.
 - Torso plan taper, back corners, chest recess outline and chest tab position.
 - Chin tabs, head underside corners, antenna line, light recess edges.
 
-### Known differences from the reference
+#### Known differences from the reference
 
 - Deliberate, for printing: the hip hub (the reference's thighs float), glue
   gaps and pin holes, 0.4 mm floors in the foot slots, and the stand.
