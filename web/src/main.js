@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -63,6 +64,13 @@ camera.up.set(0, 0, 1);
 
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }));
 composer.addPass(new RenderPass(scene, camera));
+// A glossy facet can catch a light for a single frame and reach a brightness hundreds of times the screen's white. The
+// bloom pass spreads that over a quarter of the canvas, which looks like a flash. Clamp the HDR range before bloom.
+composer.addPass(new ShaderPass({
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }",
+  fragmentShader: "uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); gl_FragColor = vec4(min(c.rgb, vec3(3.0)), c.a); }",
+}));
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.22, 0.6, 1.05);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
@@ -352,7 +360,7 @@ async function load() {
     geo.computeBoundingSphere();
     const lens = /^lens/.test(p.name), metal = /^(knee_cap|thigh_rod|thigh_piston)/.test(p.name);
     const it = addItem(p.name, geo, p.colour, V(p.centre), lens
-      ? { p, rough: 0.1, metal: 0.25, coat: 1, coatRough: 0.1, env: 1.1 }
+      ? { p, rough: 0.22, metal: 0.25, coat: 1, coatRough: 0.2, env: 1.1 }
       : metal ? { p, rough: 0.32, metal: 0.85, coat: 0.1, env: 1.3 }
         : /^stand/.test(p.name) ? { p, rough: 0.55, coat: 0.15, env: 0.55 } : { p });
     tris += p.nt;
@@ -685,7 +693,7 @@ $("#lang").addEventListener("click", () => {
 
 applyStatic();
 boot.text.textContent = T().boot.connect;
-if (DEBUG) window.__bd1 = { renderer, composer, S, bloom };
+if (DEBUG) window.__bd1 = { renderer, composer, S, bloom, frame, scene, items }; // frame() can be stepped by hand in a hidden tab
 resize();
 requestAnimationFrame(frame);
 load().catch((err) => { console.error(err); boot.text.textContent = T().boot.lost + err; });
