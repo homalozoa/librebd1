@@ -132,9 +132,9 @@ npm run dev        # local development, http://localhost:5173
 npm run build      # output in web/dist, plain static files
 ```
 
-Live address (once Pages is enabled): https://homalozoa.github.io/openbd1/
+Live address: https://openbd1.haiwang.ai/
 
-**Deploying to GitHub Pages**: after pushing to GitHub, go to the repository's Settings → Pages and set Source to "GitHub Actions". After that, every push to `main` that touches `web/` runs `npm ci && npm run build` through `.github/workflows/pages.yml` and publishes `web/dist`. Asset paths are relative, so it also works under a sub-path such as `https://<user>.github.io/openbd1/`.
+**Deploying to GitHub Pages**: after pushing to GitHub, go to the repository's Settings → Pages and set Source to "GitHub Actions". After that, every push to `main` that touches `web/` runs `npm ci && npm run build` through `.github/workflows/pages.yml` and publishes `web/dist`. Asset paths are relative, so it works on a custom domain (this one uses `openbd1.haiwang.ai`) or under a sub-path such as `https://<user>.github.io/openbd1/`.
 
 The page reads the compressed meshes in `web/public/data/`. That data is committed to the repository, so deployment does not need FreeCAD. After changing the model, regenerate it locally and commit:
 
